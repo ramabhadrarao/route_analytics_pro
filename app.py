@@ -1,7 +1,9 @@
+# app.py - UPDATED WITH ENHANCED PDF GENERATOR INTEGRATION
+
 #!/usr/bin/env python3
 """
-FIXED Flask Route Analytics Application - File-based Session Storage
-Fixes the session cookie size limit issue by storing large route data in files
+ENHANCED Flask Route Analytics Application - File-based Session Storage
+Fixed PDF generation with detailed tables, maps with markers, and weather graphs
 """
 
 import os
@@ -29,9 +31,17 @@ load_dotenv()
 try:
     from utils.pdf_generator import generate_pdf
     from utils.network_coverage import NetworkCoverageAnalyzer
+    print("✅ Enhanced PDF generator and network coverage analyzer imported successfully")
 except ImportError as e:
     print(f"⚠️ Warning: Could not import utils modules: {e}")
     print("📋 Please ensure utils/pdf_generator.py and utils/network_coverage.py are created")
+    # Try to import simple fallback
+    try:
+        from utils.pdf_generator_simple import generate_pdf
+        print("✅ Fallback simple PDF generator imported")
+    except ImportError:
+        print("❌ No PDF generator available")
+        generate_pdf = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -726,7 +736,7 @@ def upload_csv():
 
 @app.route('/generate-pdf')
 def generate_pdf_report():
-    """Generate enhanced PDF report with comprehensive maps"""
+    """Generate enhanced PDF report with comprehensive analysis"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     
@@ -737,6 +747,10 @@ def generate_pdf_report():
         flash('No route data available. Please upload and analyze a route first.', 'error')
         return redirect(url_for('dashboard'))
     
+    if not generate_pdf:
+        flash('PDF generator not available. Please check system configuration.', 'error')
+        return redirect(url_for('dashboard'))
+    
     try:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         pdf_filename = f"enhanced_route_analysis_report_{timestamp}.pdf"
@@ -745,42 +759,37 @@ def generate_pdf_report():
         # Create reports directory
         os.makedirs('reports', exist_ok=True)
         
-        # Import the enhanced PDF generator
-        try:
-            from utils.pdf_generator import generate_pdf
-            
-            # Generate enhanced PDF with comprehensive mapping
-            result = generate_pdf(
-                filename=pdf_path,
-                from_addr=route_data.get('from_address', 'Unknown'),
-                to_addr=route_data.get('to_address', 'Unknown'),
-                distance=route_data.get('distance', 'Unknown'),
-                duration=route_data.get('duration', 'Unknown'),
-                turns=route_data.get('sharp_turns', []),
-                petrol_bunks=route_data.get('petrol_bunks', {}),
-                hospital_list=route_data.get('hospitals', {}),
-                schools=route_data.get('schools', {}),
-                food_stops=route_data.get('food_stops', {}),
-                police_stations=route_data.get('police_stations', {}),
-                elevation=route_data.get('elevation', []),
-                weather=route_data.get('weather', []),
-                risk_segments=route_data.get('risk_segments', []),
-                major_highways=route_data.get('major_highways', []),
-                vehicle_type='car',
-                type='enhanced_full',
-                api_key=GOOGLE_MAPS_API_KEY,
-                route_data=route_data  # Pass complete route data for enhanced features
-            )
-            
-            if result:
-                logger.info(f"Enhanced PDF report generated successfully: {pdf_filename}")
-                return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
-            else:
-                flash('Failed to generate enhanced PDF report', 'error')
-                return redirect(url_for('dashboard'))
-                
-        except ImportError:
-            flash('Enhanced PDF generator not available. Please ensure utils/pdf_generator.py is updated.', 'error')
+        # Generate enhanced PDF with comprehensive analysis
+        logger.info(f"Generating enhanced PDF report: {pdf_filename}")
+        
+        result = generate_pdf(
+            filename=pdf_path,
+            from_addr=route_data.get('from_address', 'Unknown'),
+            to_addr=route_data.get('to_address', 'Unknown'),
+            distance=route_data.get('distance', 'Unknown'),
+            duration=route_data.get('duration', 'Unknown'),
+            turns=route_data.get('sharp_turns', []),
+            petrol_bunks=route_data.get('petrol_bunks', {}),
+            hospital_list=route_data.get('hospitals', {}),
+            schools=route_data.get('schools', {}),
+            food_stops=route_data.get('food_stops', {}),
+            police_stations=route_data.get('police_stations', {}),
+            elevation=route_data.get('elevation', []),
+            weather=route_data.get('weather', []),
+            risk_segments=route_data.get('risk_segments', []),
+            major_highways=route_data.get('major_highways', []),
+            vehicle_type='car',
+            type='enhanced_comprehensive',
+            api_key=GOOGLE_MAPS_API_KEY,
+            route_data=route_data  # Pass complete route data
+        )
+        
+        if result:
+            logger.info(f"Enhanced PDF report generated successfully: {pdf_filename}")
+            flash('Enhanced PDF report generated successfully with detailed tables, maps, and weather graphs!', 'success')
+            return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
+        else:
+            flash('Failed to generate enhanced PDF report', 'error')
             return redirect(url_for('dashboard'))
             
     except Exception as e:
@@ -826,7 +835,7 @@ def route_details():
 
 @app.route('/clear-analysis', methods=['POST'])
 def clear_analysis():
-    """ENHANCEMENT 3: Clear previous analysis data without re-calculation"""
+    """Clear previous analysis data"""
     if 'logged_in' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
@@ -870,7 +879,7 @@ def analysis_status():
         route_data = session_manager.get_route_data(session_id)
         
         if route_data:
-            # Extract summary information without loading full data
+            # Extract summary information
             summary = {
                 'has_data': True,
                 'from_address': route_data.get('from_address', 'Unknown'),
@@ -910,105 +919,6 @@ def analysis_status():
             'error': f'Failed to check analysis status: {str(e)}'
         }), 500
 
-@app.route('/quick-analysis-summary')
-def quick_analysis_summary():
-    """Get quick analysis summary for dashboard display"""
-    if 'logged_in' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-    
-    try:
-        session_id = get_session_id()
-        route_data = session_manager.get_route_data(session_id)
-        
-        if not route_data:
-            return jsonify({
-                'status': 'success',
-                'data': {'has_data': False}
-            })
-        
-        # Calculate enhanced statistics
-        sharp_turns = route_data.get('sharp_turns', [])
-        network_coverage = route_data.get('network_coverage', {})
-        coverage_stats = network_coverage.get('coverage_stats', {})
-        
-        # Categorize turns
-        blind_spots = len([t for t in sharp_turns if t.get('angle', 0) > 80])
-        sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
-        moderate_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
-        
-        # Calculate safety score
-        safety_score = calculate_route_safety_score(
-            sharp_turns, 
-            len(network_coverage.get('dead_zones', [])),
-            len(network_coverage.get('poor_zones', []))
-        )
-        
-        # Enhanced summary
-        enhanced_summary = {
-            'has_data': True,
-            'basic_info': {
-                'from_address': route_data.get('from_address', 'Unknown')[:50],
-                'to_address': route_data.get('to_address', 'Unknown')[:50],
-                'distance': route_data.get('distance', 'Unknown'),
-                'duration': route_data.get('duration', 'Unknown'),
-                'total_points': route_data.get('total_points', 0)
-            },
-            'hazard_analysis': {
-                'total_sharp_turns': len(sharp_turns),
-                'blind_spots': blind_spots,
-                'sharp_danger_turns': sharp_danger,
-                'moderate_turns': moderate_turns,
-                'most_dangerous_angle': max([t.get('angle', 0) for t in sharp_turns]) if sharp_turns else 0
-            },
-            'network_analysis': {
-                'api_success_rate': coverage_stats.get('api_success_rate', 0),
-                'overall_coverage_score': coverage_stats.get('overall_coverage_score', 0),
-                'dead_zones_count': len(network_coverage.get('dead_zones', [])),
-                'poor_zones_count': len(network_coverage.get('poor_zones', [])),
-                'excellent_coverage_points': coverage_stats.get('quality_distribution', {}).get('excellent', 0),
-                'good_coverage_points': coverage_stats.get('quality_distribution', {}).get('good', 0)
-            },
-            'poi_analysis': {
-                'hospitals': len(route_data.get('hospitals', {})),
-                'petrol_bunks': len(route_data.get('petrol_bunks', {})),
-                'schools': len(route_data.get('schools', {})),
-                'food_stops': len(route_data.get('food_stops', {})),
-                'police_stations': len(route_data.get('police_stations', {})),
-                'total_pois': sum([
-                    len(route_data.get('hospitals', {})),
-                    len(route_data.get('petrol_bunks', {})),
-                    len(route_data.get('schools', {})),
-                    len(route_data.get('food_stops', {})),
-                    len(route_data.get('police_stations', {}))
-                ])
-            },
-            'safety_metrics': {
-                'overall_safety_score': safety_score,
-                'safety_rating': get_safety_rating(safety_score),
-                'critical_alerts': blind_spots + len(network_coverage.get('dead_zones', [])),
-                'warnings': sharp_danger + len(network_coverage.get('poor_zones', []))
-            },
-            'meta_info': {
-                'analysis_timestamp': session.get('analysis_timestamp'),
-                'uploaded_file': session.get('uploaded_file'),
-                'has_network_data': bool(network_coverage.get('coverage_analysis')),
-                'has_elevation_data': bool(route_data.get('elevation')),
-                'has_weather_data': bool(route_data.get('weather'))
-            }
-        }
-        
-        return jsonify({
-            'status': 'success',
-            'data': enhanced_summary
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting quick analysis summary: {e}")
-        return jsonify({
-            'status': 'error',
-            'error': f'Failed to get analysis summary: {str(e)}'
-        }), 500
-
 def calculate_route_safety_score(sharp_turns, dead_zones_count, poor_zones_count):
     """Calculate overall route safety score (0-100)"""
     base_score = 100
@@ -1030,18 +940,6 @@ def calculate_route_safety_score(sharp_turns, dead_zones_count, poor_zones_count
     
     return max(0, min(100, base_score))
 
-def get_safety_rating(score):
-    """Get safety rating based on score"""
-    if score >= 85:
-        return "EXCELLENT"
-    elif score >= 70:
-        return "GOOD"
-    elif score >= 55:
-        return "FAIR"
-    elif score >= 40:
-        return "POOR"
-    else:
-        return "CRITICAL"
 # Cleanup task - run periodically
 @app.before_request
 def cleanup_old_session_data():
@@ -1059,13 +957,15 @@ if __name__ == '__main__':
     os.makedirs('utils', exist_ok=True)
     os.makedirs('session_data', exist_ok=True)
     
-    print("\n🚀 Starting Route Analytics Application (FIXED SESSION STORAGE)...")
-    print("=" * 60)
+    print("\n🚀 Starting Enhanced Route Analytics Application...")
+    print("=" * 70)
     print(f"📍 Admin Login: {ADMIN_USERNAME} / {ADMIN_PASSWORD}")
     print(f"🔑 Google Maps API Key: {'✅ Configured' if GOOGLE_MAPS_API_KEY else '❌ Missing'}")
     print(f"🌤️ Weather API Key: {'✅ Configured' if OPENWEATHER_API_KEY else '❌ Missing'}")
-    print("💾 Session Storage: File-based (Fixed large data issue)")
+    print(f"📊 PDF Generator: {'✅ Enhanced Available' if generate_pdf else '❌ Not Available'}")
+    print("💾 Session Storage: File-based (Optimized for large data)")
+    print("📈 Features: Detailed POI Tables, Maps with Markers, Weather Graphs")
     print("🌐 Application URL: http://localhost:5000")
-    print("=" * 60)
+    print("=" * 70)
     
     app.run(debug=True, host='0.0.0.0', port=5000)
