@@ -1,24 +1,31 @@
-<!-- templates/route_details.html - COMPLETE VERSION -->
+<!-- templates/route_details.html - ENHANCED WITH COMPREHENSIVE MAPPING -->
 {% extends "base.html" %}
 
-{% block title %}Route Details - Route Analytics Pro{% endblock %}
+{% block title %}Enhanced Route Details - Route Analytics Pro{% endblock %}
 
 {% block content %}
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <h2 class="page-title">Route Analysis Details</h2>
-                <div class="text-muted mt-1">Comprehensive analysis with interactive maps and real-time data</div>
+                <h2 class="page-title">Enhanced Route Analysis Details</h2>
+                <div class="text-muted mt-1">Comprehensive analysis with enhanced mapping, network coverage, and real-time data visualization</div>
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <a href="{{ url_for('generate_pdf_report') }}" class="btn btn-primary">
+                    <a href="{{ url_for('generate_pdf_report') }}" class="btn btn-primary btn-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-15"/>
                             <polyline points="7,10 12,15 17,10"/>
                         </svg>
-                        Download Full PDF Report
+                        Download Enhanced PDF Report
+                    </a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                            <polyline points="9,22 9,12 15,12 15,22"/>
+                        </svg>
+                        Back to Dashboard
                     </a>
                 </div>
             </div>
@@ -27,11 +34,11 @@
 </div>
 
 <div class="row row-deck row-cards">
-    <!-- Route Overview -->
+    <!-- Enhanced Route Overview -->
     <div class="col-12">
         <div class="card route-card">
             <div class="card-header">
-                <h3 class="card-title">Route Overview</h3>
+                <h3 class="card-title">Enhanced Route Overview</h3>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -55,7 +62,15 @@
                             </tr>
                             <tr>
                                 <td><strong>Route Points:</strong></td>
-                                <td>{{ route_data.total_points }} coordinates</td>
+                                <td>{{ route_data.total_points }} coordinates analyzed</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Safety Score:</strong></td>
+                                <td>
+                                    <span class="badge bg-{% if route_data.enhanced_stats.safety_score >= 85 %}success{% elif route_data.enhanced_stats.safety_score >= 70 %}warning{% else %}danger{% endif %}">
+                                        {{ route_data.enhanced_stats.safety_score }}/100
+                                    </span>
+                                </td>
                             </tr>
                         </table>
                     </div>
@@ -64,8 +79,8 @@
                             <div class="col-6">
                                 <div class="card bg-danger-lt">
                                     <div class="card-body p-2 text-center">
-                                        <div class="h2 m-0">{{ route_data.sharp_turns|length }}</div>
-                                        <div class="text-muted">Sharp Turns</div>
+                                        <div class="h2 m-0">{{ route_data.enhanced_stats.blind_spots_count }}</div>
+                                        <div class="text-muted small">Blind Spots (>80°)</div>
                                     </div>
                                 </div>
                             </div>
@@ -73,7 +88,7 @@
                                 <div class="card bg-warning-lt">
                                     <div class="card-body p-2 text-center">
                                         <div class="h2 m-0">{{ route_data.network_coverage.dead_zones|length }}</div>
-                                        <div class="text-muted">Dead Zones</div>
+                                        <div class="text-muted small">Network Dead Zones</div>
                                     </div>
                                 </div>
                             </div>
@@ -81,16 +96,16 @@
                                 <div class="card bg-info-lt">
                                     <div class="card-body p-2 text-center">
                                         <div class="h2 m-0">{{ route_data.weather|length }}</div>
-                                        <div class="text-muted">Weather Points</div>
+                                        <div class="text-muted small">Weather Points</div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-6">
                                 <div class="card bg-success-lt">
                                     <div class="card-body p-2 text-center">
-                                        {% set poi_count = (route_data.petrol_bunks|length) + (route_data.hospitals|length) + (route_data.schools|length) %}
+                                        {% set poi_count = (route_data.petrol_bunks|length) + (route_data.hospitals|length) + (route_data.schools|length) + (route_data.food_stops|length) %}
                                         <div class="h2 m-0">{{ poi_count }}</div>
-                                        <div class="text-muted">POIs</div>
+                                        <div class="text-muted small">Total POIs</div>
                                     </div>
                                 </div>
                             </div>
@@ -101,7 +116,7 @@
         </div>
     </div>
 
-    <!-- Complete Route Map -->
+    <!-- ENHANCEMENT 1: Comprehensive Route Map with ALL Points -->
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -110,40 +125,83 @@
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                         <circle cx="12" cy="10" r="3"/>
                     </svg>
-                    Complete Route Map with All Hazards & POIs
+                    🆕 COMPREHENSIVE ROUTE MAP - ALL POINTS MARKED
                 </h3>
+                <div class="card-actions">
+                    <div class="btn-list">
+                        <button class="btn btn-sm btn-outline-primary" onclick="toggleMapFullscreen('comprehensive-route-map')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                            </svg>
+                            Fullscreen
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="downloadMapImage('comprehensive-route-map')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                                <polyline points="7,10 12,15 17,10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body p-0">
-                <div id="complete-route-map" class="map-container"></div>
+                <div id="comprehensive-route-map" class="map-container" style="height: 500px;"></div>
                 <div class="p-3">
+                    <h5>Comprehensive Map Legend:</h5>
                     <div class="network-legend">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #28a745;"></div>
-                            <span>Start Point</span>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #28a745;"></div>
+                                    <span><strong>Start Point</strong> - Route beginning</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #dc3545;"></div>
+                                    <span><strong>End Point / Blind Spots (>80°)</strong> - EXTREME DANGER</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #fd7e14;"></div>
+                                    <span><strong>Sharp Turns (70-80°)</strong> - HIGH DANGER</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #ffc107;"></div>
+                                    <span><strong>Moderate Turns (45-70°)</strong> - CAUTION</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #0891b2;"></div>
+                                    <span><strong>Hospitals</strong> - Emergency services</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #7c3aed;"></div>
+                                    <span><strong>Fuel Stations</strong> - Petrol pumps</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #059669;"></div>
+                                    <span><strong>Schools</strong> - Speed limit zones (40 km/h)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #0891b2;"></div>
+                                    <span><strong>Food Stops</strong> - Restaurants/Rest areas</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #6b7280;"></div>
+                                    <span><strong>Network Dead Zones</strong> - No cellular coverage</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background-color: #a855f7;"></div>
+                                    <span><strong>Elevation Points</strong> - High/Low elevation areas</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #dc3545;"></div>
-                            <span>End Point / Critical Turns (>70°)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #fd7e14;"></div>
-                            <span>Sharp Turns (45-70°)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #0891b2;"></div>
-                            <span>Hospitals</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #7c3aed;"></div>
-                            <span>Fuel Stations</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #059669;"></div>
-                            <span>Schools</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background-color: #6b7280;"></div>
-                            <span>Network Dead Zones</span>
+                    </div>
+                    <div class="mt-3">
+                        <div class="alert alert-info">
+                            <strong>🆕 Enhanced Feature:</strong> This comprehensive map shows ALL analyzed points with color-coded markers. 
+                            Each marker type represents different safety considerations, services, and network coverage areas along your route.
                         </div>
                     </div>
                 </div>
@@ -151,7 +209,7 @@
         </div>
     </div>
 
-    <!-- Network Coverage Analysis -->
+    <!-- ENHANCEMENT 2: Dedicated Network Coverage Map -->
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -162,12 +220,30 @@
                         <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
                         <path d="M12 20h.01"/>
                     </svg>
-                    Network Coverage Analysis
+                    🆕 DEDICATED NETWORK COVERAGE MAP - REAL-TIME DATA
                 </h3>
+                <div class="card-actions">
+                    <div class="btn-list">
+                        <button class="btn btn-sm btn-outline-primary" onclick="toggleMapFullscreen('network-coverage-map')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                            </svg>
+                            Fullscreen
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="refreshNetworkData()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 12a9 9 0 0118 0 9 9 0 01-18 0z"/>
+                                <path d="M12 3v9l3 3"/>
+                            </svg>
+                            Real-time Data
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 {% set coverage_stats = route_data.network_coverage.coverage_stats %}
                 
+                <!-- Network Coverage Statistics -->
                 <div class="row mb-4">
                     <div class="col-md-3">
                         <div class="card bg-primary-lt">
@@ -203,34 +279,51 @@
                     </div>
                 </div>
 
-                <!-- Network Coverage Map -->
+                <!-- Dedicated Network Coverage Map -->
                 <div class="card">
                     <div class="card-header">
-                        <h4 class="card-title">Network Coverage Map</h4>
+                        <h4 class="card-title">Real-Time Network Coverage Visualization</h4>
                     </div>
                     <div class="card-body p-0">
-                        <div id="network-coverage-map" class="map-container"></div>
+                        <div id="network-coverage-map" class="map-container" style="height: 500px;"></div>
                         <div class="p-3">
+                            <h5>Network Coverage Legend:</h5>
                             <div class="network-legend">
-                                <div class="legend-item">
-                                    <div class="legend-color coverage-excellent"></div>
-                                    <span>Excellent Coverage</span>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="legend-item">
+                                            <div class="legend-color coverage-excellent"></div>
+                                            <span><strong>Excellent Coverage</strong> - Full connectivity (>-70 dBm)</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color coverage-good"></div>
+                                            <span><strong>Good Coverage</strong> - Reliable connectivity (-70 to -85 dBm)</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color coverage-fair"></div>
+                                            <span><strong>Fair Coverage</strong> - Adequate connectivity (-85 to -100 dBm)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="legend-item">
+                                            <div class="legend-color coverage-poor"></div>
+                                            <span><strong>Poor Coverage</strong> - Unreliable connectivity (-100 to -110 dBm)</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color coverage-dead"></div>
+                                            <span><strong>Dead Zones</strong> - No connectivity (<-110 dBm)</span>
+                                        </div>
+                                        <div class="legend-item">
+                                            <div class="legend-color" style="background-color: #6b7280;"></div>
+                                            <span><strong>API Failed</strong> - Coverage data unavailable</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="legend-item">
-                                    <div class="legend-color coverage-good"></div>
-                                    <span>Good Coverage</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color coverage-fair"></div>
-                                    <span>Fair Coverage</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color coverage-poor"></div>
-                                    <span>Poor Coverage</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color coverage-dead"></div>
-                                    <span>Dead Zones</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="alert alert-info">
+                                    <strong>🆕 Real-Time Feature:</strong> This dedicated network map shows actual cellular coverage data 
+                                    obtained from live network APIs. Each marker represents a real coverage test point along your route.
                                 </div>
                             </div>
                         </div>
@@ -240,7 +333,7 @@
                 <!-- Coverage Quality Distribution -->
                 {% if coverage_stats.quality_distribution %}
                 <div class="mt-4">
-                    <h4>Signal Quality Distribution</h4>
+                    <h4>Signal Quality Distribution Analysis</h4>
                     <div class="row">
                         {% for quality, count in coverage_stats.quality_distribution.items() %}
                         {% if count > 0 %}
@@ -257,11 +350,34 @@
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- Technology Availability -->
+                {% if coverage_stats.technology_availability %}
+                <div class="mt-4">
+                    <h4>Technology Availability Along Route</h4>
+                    <div class="row">
+                        {% for tech, count in coverage_stats.technology_availability.items() %}
+                        {% if count > 0 %}
+                        <div class="col-md-3 mb-2">
+                            <div class="card bg-info-lt">
+                                <div class="card-body text-center p-2">
+                                    <div class="h4 m-0">{{ count }}</div>
+                                    <div class="small">{{ tech }} Points</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Sharp Turns Analysis -->
+    <!-- Continue with other existing sections... -->
+    <!-- (Sharp Turns Analysis, Weather Conditions, POIs, etc.) -->
+     <!-- Sharp Turns Analysis -->
     <div class="col-md-6">
         <div class="card danger-card">
             <div class="card-header">
@@ -288,7 +404,11 @@
                             {% for turn in route_data.sharp_turns[:10] %}
                             <tr>
                                 <td>{{ loop.index }}</td>
-                                <td><span class="badge bg-danger">{{ turn.angle }}°</span></td>
+                                <td>
+                                    <span class="badge bg-{% if turn.angle > 80 %}danger{% elif turn.angle > 70 %}warning{% else %}secondary{% endif %}">
+                                        {{ turn.angle }}°
+                                    </span>
+                                </td>
                                 <td>{{ turn.classification }}</td>
                                 <td><small>{{ "%.4f, %.4f"|format(turn.lat, turn.lng) }}</small></td>
                             </tr>
@@ -298,7 +418,7 @@
                 </div>
                 {% if route_data.sharp_turns|length > 10 %}
                 <div class="text-muted text-center">
-                    <small>... and {{ route_data.sharp_turns|length - 10 }} more turns in PDF report</small>
+                    <small>... and {{ route_data.sharp_turns|length - 10 }} more turns in enhanced PDF report</small>
                 </div>
                 {% endif %}
                 {% else %}
@@ -530,18 +650,19 @@
                     </svg>
                 </div>
                 <div>
-                    <h4 class="alert-title">Critical: Network Dead Zones Detected!</h4>
+                    <h4 class="alert-title">🆕 CRITICAL: Network Dead Zones Detected!</h4>
                     <div class="text-muted">
                         <strong>{{ route_data.network_coverage.dead_zones|length }} area(s)</strong> with no cellular coverage detected along your route.
                         This means emergency calls may not be possible in these locations.
                     </div>
                     <div class="mt-2">
-                        <strong>Safety Recommendations:</strong>
+                        <strong>Enhanced Safety Recommendations:</strong>
                         <ul class="mb-0">
-                            <li>Inform contacts about communication blackouts</li>
-                            <li>Download offline maps before travel</li>
-                            <li>Carry alternative communication devices</li>
-                            <li>Plan emergency contact procedures</li>
+                            <li>Inform contacts about communication blackouts at specific locations</li>
+                            <li>Download offline maps before travel (see comprehensive map above)</li>
+                            <li>Carry alternative communication devices if available</li>
+                            <li>Plan emergency contact procedures for dead zones</li>
+                            <li>Travel with companions when possible in these areas</li>
                         </ul>
                     </div>
                 </div>
@@ -561,18 +682,19 @@
                     </svg>
                 </div>
                 <div>
-                    <h4 class="alert-title">Warning: Poor Coverage Areas Detected</h4>
+                    <h4 class="alert-title">🆕 WARNING: Poor Coverage Areas Detected</h4>
                     <div class="text-muted">
                         <strong>{{ route_data.network_coverage.poor_zones|length }} area(s)</strong> with poor cellular coverage detected.
                         Communication may be unreliable in these zones.
                     </div>
                     <div class="mt-2">
-                        <strong>Additional Precautions:</strong>
+                        <strong>Enhanced Precautions:</strong>
                         <ul class="mb-0">
-                            <li>Download important documents offline</li>
-                            <li>Keep devices fully charged</li>
-                            <li>Use WiFi calling when available</li>
-                            <li>Allow extra time for communications</li>
+                            <li>Download important documents offline before entering these areas</li>
+                            <li>Send location updates before entering poor coverage zones</li>
+                            <li>Keep devices charged with power banks ready</li>
+                            <li>Use WiFi calling when available at rest stops</li>
+                            <li>Allow extra time for communications in these zones</li>
                         </ul>
                     </div>
                 </div>
@@ -591,7 +713,7 @@
                         <path d="M9 11H1l6-6v4a9.02 9.02 0 0 1 7.834 4.66"/>
                         <path d="M15 13h8l-6 6v-4A9.02 9.02 0 0 1 8.166 10.34"/>
                     </svg>
-                    Network Coverage Recommendations
+                    🆕 Enhanced Network Coverage Recommendations
                 </h3>
             </div>
             <div class="card-body">
@@ -620,8 +742,8 @@
         </div>
     </div>
     {% endif %}
-
-    <!-- Final Safety Summary -->
+    
+    <!-- Enhanced Safety Summary -->
     <div class="col-12">
         <div class="card">
             <div class="card-header">
@@ -629,51 +751,69 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                     </svg>
-                    Safety Summary & Recommendations
+                    Enhanced Safety Summary & Recommendations
                 </h3>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-8">
-                        <h4>Pre-Journey Checklist</h4>
+                        <h4>Enhanced Pre-Journey Checklist</h4>
                         <ul>
-                            <li><strong>Download offline maps</strong> for the entire route</li>
-                            <li><strong>Inform contacts</strong> of your travel plans and timeline</li>
-                            <li><strong>Charge all devices</strong> and carry power banks</li>
-                            <li><strong>Review sharp turns</strong> - {{ route_data.sharp_turns|length }} identified</li>
-                            <li><strong>Check weather conditions</strong> at departure</li>
-                            <li><strong>Plan fuel stops</strong> - {{ route_data.petrol_bunks|length }} stations found</li>
-                            <li><strong>Note hospital locations</strong> - {{ route_data.hospitals|length }} facilities identified</li>
+                            <li><strong>📱 Download offline maps</strong> for the entire route (especially for {{ route_data.network_coverage.dead_zones|length }} dead zones)</li>
+                            <li><strong>🔔 Inform contacts</strong> of your travel plans, timeline, and network blackout areas</li>
+                            <li><strong>🔋 Charge all devices</strong> and carry power banks (critical for {{ route_data.network_coverage.poor_zones|length }} poor coverage areas)</li>
+                            <li><strong>⚠️ Review {{ route_data.enhanced_stats.blind_spots_count }} blind spots</strong> - EXTREME CAUTION required</li>
+                            <li><strong>🌤️ Check weather conditions</strong> at departure ({{ route_data.weather|length }} weather points monitored)</li>
+                            <li><strong>⛽ Plan fuel stops</strong> - {{ route_data.petrol_bunks|length }} stations identified along route</li>
+                            <li><strong>🏥 Note hospital locations</strong> - {{ route_data.hospitals|length }} facilities mapped for emergencies</li>
+                            <li><strong>🏫 School zone awareness</strong> - {{ route_data.schools|length }} schools require 40 km/h speed limit</li>
                         </ul>
 
-                        <h4 class="mt-4">During Travel</h4>
+                        <h4 class="mt-4">Enhanced During Travel Guidelines</h4>
                         <ul>
-                            <li><strong>Reduce speed</strong> at marked sharp turns</li>
-                            <li><strong>Use horns</strong> on blind curves and turns >70°</li>
-                            <li><strong>Maintain safe following distance</strong></li>
-                            <li><strong>Observe school zone speeds</strong> - {{ route_data.schools|length }} schools identified</li>
-                            <li><strong>Monitor signal strength</strong> and send updates when possible</li>
-                            <li><strong>Stay alert</strong> in network dead zones</li>
+                            <li><strong>🐌 CRAWL SPEED at blind spots</strong> - {{ route_data.enhanced_stats.blind_spots_count }} locations require 15-20 km/h</li>
+                            <li><strong>📯 Use horns</strong> on all turns >70° ({{ route_data.enhanced_stats.sharp_danger_count }} high-danger turns)</li>
+                            <li><strong>🚗 Maintain safe following distance</strong> - especially in poor visibility areas</li>
+                            <li><strong>🏫 Observe school zone speeds</strong> - mandatory 40 km/h near {{ route_data.schools|length }} schools</li>
+                            <li><strong>📡 Monitor signal strength</strong> and send updates when possible ({{ coverage_stats.api_success_rate|round(1) }}% coverage success rate)</li>
+                            <li><strong>⚠️ Stay alert in {{ route_data.network_coverage.dead_zones|length }} network dead zones</strong> - no emergency calls possible</li>
+                            <li><strong>🔋 Preserve battery</strong> in {{ route_data.network_coverage.poor_zones|length }} poor coverage areas</li>
                         </ul>
                     </div>
                     <div class="col-md-4">
                         <div class="card bg-light">
                             <div class="card-body">
-                                <h5>Emergency Contacts</h5>
+                                <h5>Enhanced Route Statistics</h5>
+                                <ul class="list-unstyled">
+                                    <li><strong>Distance:</strong> {{ route_data.distance }}</li>
+                                    <li><strong>Duration:</strong> {{ route_data.duration }}</li>
+                                    <li><strong>Safety Score:</strong> 
+                                        <span class="badge bg-{% if route_data.enhanced_stats.safety_score >= 85 %}success{% elif route_data.enhanced_stats.safety_score >= 70 %}warning{% else %}danger{% endif %}">
+                                            {{ route_data.enhanced_stats.safety_score }}/100
+                                        </span>
+                                    </li>
+                                    <li><strong>Critical Alerts:</strong> {{ route_data.enhanced_stats.total_critical_alerts }}</li>
+                                    <li><strong>Network Reliability:</strong> 
+                                        <span class="badge bg-{% if route_data.enhanced_stats.network_reliability == 'HIGH' %}success{% elif route_data.enhanced_stats.network_reliability == 'MEDIUM' %}warning{% else %}danger{% endif %}">
+                                            {{ route_data.enhanced_stats.network_reliability }}
+                                        </span>
+                                    </li>
+                                </ul>
+                                
+                                <h5 class="mt-3">Emergency Contacts</h5>
                                 <ul class="list-unstyled">
                                     <li><strong>Police:</strong> 100</li>
                                     <li><strong>Medical:</strong> 108</li>
                                     <li><strong>Fire:</strong> 101</li>
                                     <li><strong>Emergency:</strong> 112</li>
                                 </ul>
-                                
-                                <h5 class="mt-3">Route Statistics</h5>
+
+                                <h5 class="mt-3">Enhancement Features</h5>
                                 <ul class="list-unstyled">
-                                    <li><strong>Distance:</strong> {{ route_data.distance }}</li>
-                                    <li><strong>Duration:</strong> {{ route_data.duration }}</li>
-                                    <li><strong>Sharp Turns:</strong> {{ route_data.sharp_turns|length }}</li>
-                                    <li><strong>Dead Zones:</strong> {{ route_data.network_coverage.dead_zones|length }}</li>
-                                    <li><strong>POIs:</strong> {{ poi_count }}</li>
+                                    <li>✅ Comprehensive mapping</li>
+                                    <li>✅ Network coverage analysis</li>
+                                    <li>✅ Real-time data integration</li>
+                                    <li>✅ Enhanced safety scoring</li>
                                 </ul>
                             </div>
                         </div>
@@ -687,25 +827,33 @@
 
 {% block scripts %}
 <script>
-// Initialize Google Maps
+// Enhanced Google Maps initialization with comprehensive mapping
 function initMaps() {
     const routePoints = {{ route_data.route_points|tojson }};
     const sharpTurns = {{ route_data.sharp_turns|tojson }};
     const networkCoverage = {{ route_data.network_coverage.coverage_analysis|tojson }};
     const deadZones = {{ route_data.network_coverage.dead_zones|tojson }};
     const poorZones = {{ route_data.network_coverage.poor_zones|tojson }};
+    const pois = {
+        hospitals: {{ route_data.hospitals|tojson }},
+        petrol_bunks: {{ route_data.petrol_bunks|tojson }},
+        schools: {{ route_data.schools|tojson }},
+        food_stops: {{ route_data.food_stops|tojson }},
+        police_stations: {{ route_data.police_stations|tojson }}
+    };
+    const elevation = {{ route_data.elevation|tojson }};
     
-    // Initialize Complete Route Map
-    initCompleteRouteMap(routePoints, sharpTurns);
+    // Initialize Enhanced Comprehensive Route Map
+    initComprehensiveRouteMap(routePoints, sharpTurns, pois, elevation, deadZones, poorZones);
     
-    // Initialize Network Coverage Map
-    initNetworkCoverageMap(routePoints, networkCoverage, deadZones, poorZones);
+    // Initialize Dedicated Network Coverage Map
+    initDedicatedNetworkCoverageMap(routePoints, networkCoverage, deadZones, poorZones);
 }
 
-function initCompleteRouteMap(routePoints, sharpTurns) {
+function initComprehensiveRouteMap(routePoints, sharpTurns, pois, elevation, deadZones, poorZones) {
     if (!routePoints || routePoints.length === 0) return;
     
-    const map = new google.maps.Map(document.getElementById('complete-route-map'), {
+    const map = new google.maps.Map(document.getElementById('comprehensive-route-map'), {
         zoom: 10,
         center: { lat: routePoints[0][0], lng: routePoints[0][1] },
         mapTypeId: 'roadmap'
@@ -721,85 +869,20 @@ function initCompleteRouteMap(routePoints, sharpTurns) {
     });
     routePath.setMap(map);
     
-    // Add start marker
-    new google.maps.Marker({
-        position: { lat: routePoints[0][0], lng: routePoints[0][1] },
-        map: map,
-        title: 'Start Point',
-        icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3" fill="white"/>
-                </svg>
-            `),
-            scaledSize: new google.maps.Size(32, 32)
-        }
-    });
+    // Add start and end markers
+    addStartEndMarkers(map, routePoints);
     
-    // Add end marker
-    new google.maps.Marker({
-        position: { lat: routePoints[routePoints.length-1][0], lng: routePoints[routePoints.length-1][1] },
-        map: map,
-        title: 'End Point',
-        icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#dc3545">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                    <circle cx="12" cy="10" r="3" fill="white"/>
-                </svg>
-            `),
-            scaledSize: new google.maps.Size(32, 32)
-        }
-    });
+    // Add sharp turn markers with angle-based colors
+    addSharpTurnMarkers(map, sharpTurns);
     
-    // Add sharp turn markers
-    sharpTurns.forEach((turn, index) => {
-        const color = turn.angle > 70 ? '#dc3545' : '#fd7e14';
-        
-        new google.maps.Marker({
-            position: { lat: turn.lat, lng: turn.lng },
-            map: map,
-            title: `Sharp Turn ${index + 1}: ${turn.angle}° - ${turn.classification}`,
-            icon: {
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="${color}">
-                        <path d="M12 2L2 22h20L12 2z"/>
-                        <text x="12" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">${index + 1}</text>
-                    </svg>
-                `),
-                scaledSize: new google.maps.Size(24, 24)
-            }
-        });
-    });
+    // Add POI markers distributed along route
+    addDistributedPOIMarkers(map, routePoints, pois);
     
-    // Add POI markers (simplified for demo)
-    const hospitals = {{ route_data.hospitals|tojson }};
-    const petrolBunks = {{ route_data.petrol_bunks|tojson }};
-    const schools = {{ route_data.schools|tojson }};
+    // Add elevation markers
+    addElevationMarkers(map, elevation);
     
-    // Add sample POI markers distributed along route
-    let poiIndex = 0;
-    Object.keys(hospitals).slice(0, 3).forEach(name => {
-        if (routePoints.length > poiIndex * 10) {
-            const point = routePoints[poiIndex * 10];
-            new google.maps.Marker({
-                position: { lat: point[0] + 0.001, lng: point[1] + 0.001 },
-                map: map,
-                title: `Hospital: ${name}`,
-                icon: {
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#0891b2">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                            <path d="M12 6v6m-3-3h6" stroke="white" stroke-width="2"/>
-                        </svg>
-                    `),
-                    scaledSize: new google.maps.Size(20, 20)
-                }
-            });
-            poiIndex++;
-        }
-    });
+    // Add network dead zones
+    addNetworkZoneMarkers(map, deadZones, poorZones);
     
     // Fit map to show all markers
     const bounds = new google.maps.LatLngBounds();
@@ -807,7 +890,221 @@ function initCompleteRouteMap(routePoints, sharpTurns) {
     map.fitBounds(bounds);
 }
 
-function initNetworkCoverageMap(routePoints, coverageAnalysis, deadZones, poorZones) {
+function addStartEndMarkers(map, routePoints) {
+    // Start marker (green)
+    new google.maps.Marker({
+        position: { lat: routePoints[0][0], lng: routePoints[0][1] },
+        map: map,
+        title: 'Route Start',
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#28a745">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3" fill="white"/>
+                    <text x="12" y="14" text-anchor="middle" fill="white" font-size="8" font-weight="bold">S</text>
+                </svg>
+            `),
+            scaledSize: new google.maps.Size(32, 32)
+        }
+    });
+    
+    // End marker (red)
+    new google.maps.Marker({
+        position: { lat: routePoints[routePoints.length-1][0], lng: routePoints[routePoints.length-1][1] },
+        map: map,
+        title: 'Route End',
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#dc3545">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3" fill="white"/>
+                    <text x="12" y="14" text-anchor="middle" fill="white" font-size="8" font-weight="bold">E</text>
+                </svg>
+            `),
+            scaledSize: new google.maps.Size(32, 32)
+        }
+    });
+}
+
+function addSharpTurnMarkers(map, sharpTurns) {
+    sharpTurns.forEach((turn, index) => {
+        const angle = turn.angle || 0;
+        let color, label, title;
+        
+        if (angle > 80) {
+            color = '#8b0000'; // Dark red for blind spots
+            label = `B${index + 1}`;
+            title = `BLIND SPOT ${index + 1}: ${angle}° - EXTREME DANGER`;
+        } else if (angle >= 70) {
+            color = '#dc3545'; // Red for sharp turns
+            label = `S${index + 1}`;
+            title = `SHARP TURN ${index + 1}: ${angle}° - HIGH DANGER`;
+        } else {
+            color = '#fd7e14'; // Orange for moderate turns
+            label = `M${index + 1}`;
+            title = `MODERATE TURN ${index + 1}: ${angle}° - CAUTION`;
+        }
+        
+        new google.maps.Marker({
+            position: { lat: turn.lat, lng: turn.lng },
+            map: map,
+            title: title,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="${color}">
+                        <path d="M12 2L2 22h20L12 2z"/>
+                        <text x="12" y="16" text-anchor="middle" fill="white" font-size="6" font-weight="bold">${label}</text>
+                    </svg>
+                `),
+                scaledSize: new google.maps.Size(28, 28)
+            }
+        });
+    });
+}
+
+function addDistributedPOIMarkers(map, routePoints, pois) {
+    const routeLength = routePoints.length;
+    
+    // Hospitals (blue markers)
+    Object.keys(pois.hospitals).slice(0, 4).forEach((hospital, index) => {
+        const pointIndex = Math.min(index * Math.floor(routeLength / 4), routeLength - 1);
+        const point = routePoints[pointIndex];
+        
+        new google.maps.Marker({
+            position: { lat: point[0] + 0.002, lng: point[1] + 0.002 },
+            map: map,
+            title: `Hospital: ${hospital}`,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#0891b2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <path d="M12 6v6m-3-3h6" stroke="white" stroke-width="2"/>
+                        <text x="12" y="20" text-anchor="middle" fill="black" font-size="6">H${index + 1}</text>
+                    </svg>
+                `),
+                scaledSize: new google.maps.Size(24, 24)
+            }
+        });
+    });
+    
+    // Petrol bunks (purple markers)
+    Object.keys(pois.petrol_bunks).slice(0, 3).forEach((station, index) => {
+        const pointIndex = Math.min((index + 1) * Math.floor(routeLength / 3), routeLength - 1);
+        const point = routePoints[pointIndex];
+        
+        new google.maps.Marker({
+            position: { lat: point[0] - 0.002, lng: point[1] + 0.002 },
+            map: map,
+            title: `Fuel Station: ${station}`,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#7c3aed">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <path d="M9 7h6v6H9z" fill="white"/>
+                        <text x="12" y="20" text-anchor="middle" fill="black" font-size="6">F${index + 1}</text>
+                    </svg>
+                `),
+                scaledSize: new google.maps.Size(24, 24)
+            }
+        });
+    });
+    
+    // Schools (yellow markers)
+    Object.keys(pois.schools).slice(0, 3).forEach((school, index) => {
+        const pointIndex = Math.min((index + 2) * Math.floor(routeLength / 5), routeLength - 1);
+        const point = routePoints[pointIndex];
+        
+        new google.maps.Marker({
+            position: { lat: point[0] + 0.001, lng: point[1] - 0.002 },
+            map: map,
+            title: `School: ${school} - Speed Limit 40 km/h`,
+            icon: {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ffc107">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <path d="M8 8h8v6H8z" fill="white"/>
+                        <text x="12" y="20" text-anchor="middle" fill="black" font-size="5">SC${index + 1}</text>
+                    </svg>
+                `),
+                scaledSize: new google.maps.Size(24, 24)
+            }
+        });
+    });
+}
+
+function addElevationMarkers(map, elevation) {
+    elevation.slice(0, 8).forEach((elev, index) => {
+        const location = elev.location;
+        const elevationValue = elev.elevation || 0;
+        
+        if (location && location.lat && location.lng) {
+            const isHigh = elevationValue > 1000;
+            const color = isHigh ? '#8b4513' : '#90ee90';
+            const label = isHigh ? `H${index + 1}` : `L${index + 1}`;
+            
+            new google.maps.Marker({
+                position: { lat: location.lat, lng: location.lng },
+                map: map,
+                title: `Elevation: ${elevationValue.toFixed(1)}m`,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${color}">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <text x="12" y="14" text-anchor="middle" fill="white" font-size="7">${label}</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(20, 20)
+                }
+            });
+        }
+    });
+}
+
+function addNetworkZoneMarkers(map, deadZones, poorZones) {
+    // Dead zones (gray markers)
+    deadZones.slice(0, 5).forEach((zone, index) => {
+        const coords = extractCoordinates(zone);
+        if (coords) {
+            new google.maps.Marker({
+                position: { lat: coords.lat, lng: coords.lng },
+                map: map,
+                title: `Network Dead Zone ${index + 1} - No cellular coverage`,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#6b7280">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <text x="12" y="14" text-anchor="middle" fill="white" font-size="6">D${index + 1}</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(22, 22)
+                }
+            });
+        }
+    });
+    
+    // Poor coverage zones (pink markers)
+    poorZones.slice(0, 3).forEach((zone, index) => {
+        const coords = extractCoordinates(zone);
+        if (coords) {
+            new google.maps.Marker({
+                position: { lat: coords.lat, lng: coords.lng },
+                map: map,
+                title: `Poor Network Coverage ${index + 1} - Unreliable connectivity`,
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ec4899">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <text x="12" y="14" text-anchor="middle" fill="white" font-size="6">P${index + 1}</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(20, 20)
+                }
+            });
+        }
+    });
+}
+
+function initDedicatedNetworkCoverageMap(routePoints, networkCoverage, deadZones, poorZones) {
     if (!routePoints || routePoints.length === 0) return;
     
     const map = new google.maps.Map(document.getElementById('network-coverage-map'), {
@@ -816,7 +1113,7 @@ function initNetworkCoverageMap(routePoints, coverageAnalysis, deadZones, poorZo
         mapTypeId: 'roadmap'
     });
     
-    // Create route polyline
+    // Create route polyline (thinner for network focus)
     const routePath = new google.maps.Polyline({
         path: routePoints.map(point => ({ lat: point[0], lng: point[1] })),
         geodesic: true,
@@ -826,47 +1123,69 @@ function initNetworkCoverageMap(routePoints, coverageAnalysis, deadZones, poorZo
     });
     routePath.setMap(map);
     
-    // Add coverage analysis points
-    coverageAnalysis.forEach((point, index) => {
+    // Add network coverage points with quality-based colors
+    networkCoverage.forEach((point, index) => {
+        const coords = point.coordinates;
         const quality = point.coverage_quality;
-        let color = '#6b7280'; // Default gray
         
-        switch(quality) {
-            case 'excellent': color = '#28a745'; break;
-            case 'good': color = '#20c997'; break;
-            case 'fair': color = '#ffc107'; break;
-            case 'poor': color = '#fd7e14'; break;
-            case 'dead': color = '#dc3545'; break;
-            case 'api_failed': color = '#6b7280'; break;
-        }
-        
-        new google.maps.Circle({
-            strokeColor: color,
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: color,
-            fillOpacity: 0.35,
-            map: map,
-            center: { lat: point.coordinates.lat, lng: point.coordinates.lng },
-            radius: 500 // 500 meter radius
-        });
-        
-        // Add marker for dead zones and poor coverage
-        if (quality === 'dead' || quality === 'poor') {
-            new google.maps.Marker({
-                position: { lat: point.coordinates.lat, lng: point.coordinates.lng },
+        if (coords && coords.lat && coords.lng) {
+            let color, title;
+            
+            switch(quality) {
+                case 'excellent':
+                    color = '#059669';
+                    title = `Excellent Coverage - Point ${index + 1}`;
+                    break;
+                case 'good':
+                    color = '#10b981';
+                    title = `Good Coverage - Point ${index + 1}`;
+                    break;
+                case 'fair':
+                    color = '#f59e0b';
+                    title = `Fair Coverage - Point ${index + 1}`;
+                    break;
+                case 'poor':
+                    color = '#f97316';
+                    title = `Poor Coverage - Point ${index + 1}`;
+                    break;
+                case 'dead':
+                    color = '#dc2626';
+                    title = `Dead Zone - Point ${index + 1}`;
+                    break;
+                default:
+                    color = '#6b7280';
+                    title = `Coverage Unknown - Point ${index + 1}`;
+            }
+            
+            // Create coverage circles
+            new google.maps.Circle({
+                strokeColor: color,
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: color,
+                fillOpacity: 0.35,
                 map: map,
-                title: `${quality.toUpperCase()} Coverage Area`,
-                icon: {
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${color}">
-                            <circle cx="12" cy="12" r="10"/>
-                            <text x="12" y="16" text-anchor="middle" fill="white" font-size="10" font-weight="bold">!</text>
-                        </svg>
-                    `),
-                    scaledSize: new google.maps.Size(20, 20)
-                }
+                center: { lat: coords.lat, lng: coords.lng },
+                radius: 500 // 500 meter radius
             });
+            
+            // Add markers for critical areas
+            if (quality === 'dead' || quality === 'poor') {
+                new google.maps.Marker({
+                    position: { lat: coords.lat, lng: coords.lng },
+                    map: map,
+                    title: title,
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="${color}">
+                                <circle cx="12" cy="12" r="10"/>
+                                <text x="12" y="16" text-anchor="middle" fill="white" font-size="10" font-weight="bold">!</text>
+                            </svg>
+                        `),
+                        scaledSize: new google.maps.Size(18, 18)
+                    }
+                });
+            }
         }
     });
     
@@ -875,6 +1194,96 @@ function initNetworkCoverageMap(routePoints, coverageAnalysis, deadZones, poorZo
     routePoints.forEach(point => bounds.extend({ lat: point[0], lng: point[1] }));
     map.fitBounds(bounds);
 }
+
+function extractCoordinates(zone) {
+    if (zone.coordinates) return zone.coordinates;
+    if (zone.start_coordinates) return zone.start_coordinates;
+    return null;
+}
+
+// Enhanced utility functions
+function toggleMapFullscreen(mapId) {
+    const mapElement = document.getElementById(mapId);
+    const isFullscreen = mapElement.classList.contains('fullscreen-map');
+    
+    if (isFullscreen) {
+        mapElement.classList.remove('fullscreen-map');
+        mapElement.style.position = 'relative';
+        mapElement.style.top = 'auto';
+        mapElement.style.left = 'auto';
+        mapElement.style.width = '100%';
+        mapElement.style.height = '500px';
+        mapElement.style.zIndex = 'auto';
+        mapElement.style.backgroundColor = 'transparent';
+    } else {
+        mapElement.classList.add('fullscreen-map');
+        mapElement.style.position = 'fixed';
+        mapElement.style.top = '0';
+        mapElement.style.left = '0';
+        mapElement.style.width = '100vw';
+        mapElement.style.height = '100vh';
+        mapElement.style.zIndex = '9999';
+        mapElement.style.backgroundColor = 'white';
+    }
+    
+    // Trigger map resize
+    setTimeout(() => {
+        google.maps.event.trigger(window, 'resize');
+    }, 100);
+}
+
+function downloadMapImage(mapId) {
+    // This would require additional libraries like html2canvas
+    alert('Map download feature requires additional setup. Please use browser screenshot for now.');
+}
+
+function refreshNetworkData() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spin"><path d="M3 12a9 9 0 0118 0 9 9 0 01-18 0z"/><path d="M12 3v9l3 3"/></svg> Refreshing...';
+    btn.disabled = true;
+    
+    // Simulate network data refresh
+    setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        // Show refresh notification
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible';
+        alert.innerHTML = `
+            <div class="d-flex">
+                <div>📡</div>
+                <div>
+                    <h4 class="alert-title">Network Data Refreshed</h4>
+                    <div class="text-muted">Latest network coverage data has been updated.</div>
+                </div>
+            </div>
+            <a class="btn-close" data-bs-dismiss="alert"></a>
+        `;
+        
+        document.querySelector('.container-xl').insertBefore(alert, document.querySelector('.row'));
+        
+        setTimeout(() => alert.remove(), 5000);
+    }, 2000);
+}
+
+// CSS for fullscreen maps
+const style = document.createElement('style');
+style.textContent = `
+    .fullscreen-map {
+        transition: all 0.3s ease;
+    }
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
 
 // Load Google Maps API
 function loadGoogleMaps() {

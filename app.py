@@ -726,7 +726,7 @@ def upload_csv():
 
 @app.route('/generate-pdf')
 def generate_pdf_report():
-    """Generate PDF report"""
+    """Generate enhanced PDF report with comprehensive maps"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     
@@ -739,15 +739,17 @@ def generate_pdf_report():
     
     try:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_filename = f"route_analysis_report_{timestamp}.pdf"
+        pdf_filename = f"enhanced_route_analysis_report_{timestamp}.pdf"
         pdf_path = os.path.join('reports', pdf_filename)
         
         # Create reports directory
         os.makedirs('reports', exist_ok=True)
         
-        # Check if PDF generator is available
+        # Import the enhanced PDF generator
         try:
-            # Generate PDF using our enhanced generator
+            from utils.pdf_generator import generate_pdf
+            
+            # Generate enhanced PDF with comprehensive mapping
             result = generate_pdf(
                 filename=pdf_path,
                 from_addr=route_data.get('from_address', 'Unknown'),
@@ -765,30 +767,30 @@ def generate_pdf_report():
                 risk_segments=route_data.get('risk_segments', []),
                 major_highways=route_data.get('major_highways', []),
                 vehicle_type='car',
-                type='full',
+                type='enhanced_full',
                 api_key=GOOGLE_MAPS_API_KEY,
-                route_data=route_data  # Pass complete route data for network coverage
+                route_data=route_data  # Pass complete route data for enhanced features
             )
             
             if result:
-                logger.info(f"PDF report generated successfully: {pdf_filename}")
+                logger.info(f"Enhanced PDF report generated successfully: {pdf_filename}")
                 return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
             else:
-                flash('Failed to generate PDF report', 'error')
+                flash('Failed to generate enhanced PDF report', 'error')
                 return redirect(url_for('dashboard'))
                 
-        except NameError:
-            flash('PDF generator not available. Please ensure utils/pdf_generator.py is created.', 'error')
+        except ImportError:
+            flash('Enhanced PDF generator not available. Please ensure utils/pdf_generator.py is updated.', 'error')
             return redirect(url_for('dashboard'))
             
     except Exception as e:
-        logger.error(f"PDF generation error: {e}")
-        flash(f'PDF generation failed: {str(e)}', 'error')
+        logger.error(f"Enhanced PDF generation error: {e}")
+        flash(f'Enhanced PDF generation failed: {str(e)}', 'error')
         return redirect(url_for('dashboard'))
 
 @app.route('/route-details')
 def route_details():
-    """Show detailed route analysis"""
+    """Enhanced route details with comprehensive analysis"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     
@@ -799,8 +801,247 @@ def route_details():
         flash('No route data available. Please upload and analyze a route first.', 'error')
         return redirect(url_for('dashboard'))
     
-    return render_template('route_details.html', route_data=route_data, google_api_key=GOOGLE_MAPS_API_KEY)
+    # Add enhanced calculations for display
+    sharp_turns = route_data.get('sharp_turns', [])
+    network_coverage = route_data.get('network_coverage', {})
+    
+    # Enhanced route data with calculations
+    enhanced_route_data = route_data.copy()
+    enhanced_route_data['enhanced_stats'] = {
+        'safety_score': calculate_route_safety_score(
+            sharp_turns,
+            len(network_coverage.get('dead_zones', [])),
+            len(network_coverage.get('poor_zones', []))
+        ),
+        'blind_spots_count': len([t for t in sharp_turns if t.get('angle', 0) > 80]),
+        'sharp_danger_count': len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80]),
+        'moderate_turns_count': len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70]),
+        'total_critical_alerts': len([t for t in sharp_turns if t.get('angle', 0) > 80]) + len(network_coverage.get('dead_zones', [])),
+        'network_reliability': 'HIGH' if network_coverage.get('coverage_stats', {}).get('overall_coverage_score', 0) > 80 else 'MEDIUM' if network_coverage.get('coverage_stats', {}).get('overall_coverage_score', 0) > 60 else 'LOW'
+    }
+    
+    return render_template('route_details.html', 
+                         route_data=enhanced_route_data, 
+                         google_api_key=GOOGLE_MAPS_API_KEY)
 
+@app.route('/clear-analysis', methods=['POST'])
+def clear_analysis():
+    """ENHANCEMENT 3: Clear previous analysis data without re-calculation"""
+    if 'logged_in' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        session_id = get_session_id()
+        
+        # Delete route data file
+        if session_manager.delete_route_data(session_id):
+            # Clear session flags
+            session.pop('has_route_data', None)
+            session.pop('uploaded_file', None)
+            session.pop('analysis_timestamp', None)
+            
+            logger.info(f"Analysis data cleared for session {session_id}")
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Previous analysis cleared successfully'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'error': 'No previous analysis found to clear'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error clearing analysis: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': f'Failed to clear analysis: {str(e)}'
+        }), 500
+
+@app.route('/analysis-status')
+def analysis_status():
+    """Check if previous analysis data exists"""
+    if 'logged_in' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        session_id = get_session_id()
+        route_data = session_manager.get_route_data(session_id)
+        
+        if route_data:
+            # Extract summary information without loading full data
+            summary = {
+                'has_data': True,
+                'from_address': route_data.get('from_address', 'Unknown'),
+                'to_address': route_data.get('to_address', 'Unknown'),
+                'distance': route_data.get('distance', 'Unknown'),
+                'duration': route_data.get('duration', 'Unknown'),
+                'total_points': route_data.get('total_points', 0),
+                'sharp_turns_count': len(route_data.get('sharp_turns', [])),
+                'network_dead_zones': len(route_data.get('network_coverage', {}).get('dead_zones', [])),
+                'network_poor_zones': len(route_data.get('network_coverage', {}).get('poor_zones', [])),
+                'network_coverage_score': route_data.get('network_coverage', {}).get('coverage_stats', {}).get('overall_coverage_score', 0),
+                'pois_count': sum([
+                    len(route_data.get('hospitals', {})),
+                    len(route_data.get('petrol_bunks', {})),
+                    len(route_data.get('schools', {})),
+                    len(route_data.get('food_stops', {})),
+                    len(route_data.get('police_stations', {}))
+                ]),
+                'analysis_timestamp': session.get('analysis_timestamp'),
+                'uploaded_file': session.get('uploaded_file')
+            }
+            
+            return jsonify({
+                'status': 'success',
+                'data': summary
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'data': {'has_data': False}
+            })
+            
+    except Exception as e:
+        logger.error(f"Error checking analysis status: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': f'Failed to check analysis status: {str(e)}'
+        }), 500
+
+@app.route('/quick-analysis-summary')
+def quick_analysis_summary():
+    """Get quick analysis summary for dashboard display"""
+    if 'logged_in' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        session_id = get_session_id()
+        route_data = session_manager.get_route_data(session_id)
+        
+        if not route_data:
+            return jsonify({
+                'status': 'success',
+                'data': {'has_data': False}
+            })
+        
+        # Calculate enhanced statistics
+        sharp_turns = route_data.get('sharp_turns', [])
+        network_coverage = route_data.get('network_coverage', {})
+        coverage_stats = network_coverage.get('coverage_stats', {})
+        
+        # Categorize turns
+        blind_spots = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+        sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+        moderate_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
+        
+        # Calculate safety score
+        safety_score = calculate_route_safety_score(
+            sharp_turns, 
+            len(network_coverage.get('dead_zones', [])),
+            len(network_coverage.get('poor_zones', []))
+        )
+        
+        # Enhanced summary
+        enhanced_summary = {
+            'has_data': True,
+            'basic_info': {
+                'from_address': route_data.get('from_address', 'Unknown')[:50],
+                'to_address': route_data.get('to_address', 'Unknown')[:50],
+                'distance': route_data.get('distance', 'Unknown'),
+                'duration': route_data.get('duration', 'Unknown'),
+                'total_points': route_data.get('total_points', 0)
+            },
+            'hazard_analysis': {
+                'total_sharp_turns': len(sharp_turns),
+                'blind_spots': blind_spots,
+                'sharp_danger_turns': sharp_danger,
+                'moderate_turns': moderate_turns,
+                'most_dangerous_angle': max([t.get('angle', 0) for t in sharp_turns]) if sharp_turns else 0
+            },
+            'network_analysis': {
+                'api_success_rate': coverage_stats.get('api_success_rate', 0),
+                'overall_coverage_score': coverage_stats.get('overall_coverage_score', 0),
+                'dead_zones_count': len(network_coverage.get('dead_zones', [])),
+                'poor_zones_count': len(network_coverage.get('poor_zones', [])),
+                'excellent_coverage_points': coverage_stats.get('quality_distribution', {}).get('excellent', 0),
+                'good_coverage_points': coverage_stats.get('quality_distribution', {}).get('good', 0)
+            },
+            'poi_analysis': {
+                'hospitals': len(route_data.get('hospitals', {})),
+                'petrol_bunks': len(route_data.get('petrol_bunks', {})),
+                'schools': len(route_data.get('schools', {})),
+                'food_stops': len(route_data.get('food_stops', {})),
+                'police_stations': len(route_data.get('police_stations', {})),
+                'total_pois': sum([
+                    len(route_data.get('hospitals', {})),
+                    len(route_data.get('petrol_bunks', {})),
+                    len(route_data.get('schools', {})),
+                    len(route_data.get('food_stops', {})),
+                    len(route_data.get('police_stations', {}))
+                ])
+            },
+            'safety_metrics': {
+                'overall_safety_score': safety_score,
+                'safety_rating': get_safety_rating(safety_score),
+                'critical_alerts': blind_spots + len(network_coverage.get('dead_zones', [])),
+                'warnings': sharp_danger + len(network_coverage.get('poor_zones', []))
+            },
+            'meta_info': {
+                'analysis_timestamp': session.get('analysis_timestamp'),
+                'uploaded_file': session.get('uploaded_file'),
+                'has_network_data': bool(network_coverage.get('coverage_analysis')),
+                'has_elevation_data': bool(route_data.get('elevation')),
+                'has_weather_data': bool(route_data.get('weather'))
+            }
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'data': enhanced_summary
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting quick analysis summary: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': f'Failed to get analysis summary: {str(e)}'
+        }), 500
+
+def calculate_route_safety_score(sharp_turns, dead_zones_count, poor_zones_count):
+    """Calculate overall route safety score (0-100)"""
+    base_score = 100
+    
+    if not sharp_turns:
+        return base_score
+    
+    # Categorize turns by severity
+    blind_spots = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+    sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+    moderate_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
+    
+    # Deduct points based on severity
+    base_score -= blind_spots * 15        # 15 points per blind spot
+    base_score -= sharp_danger * 10       # 10 points per sharp turn
+    base_score -= moderate_turns * 5      # 5 points per moderate turn
+    base_score -= dead_zones_count * 8    # 8 points per dead zone
+    base_score -= poor_zones_count * 4    # 4 points per poor coverage zone
+    
+    return max(0, min(100, base_score))
+
+def get_safety_rating(score):
+    """Get safety rating based on score"""
+    if score >= 85:
+        return "EXCELLENT"
+    elif score >= 70:
+        return "GOOD"
+    elif score >= 55:
+        return "FAIR"
+    elif score >= 40:
+        return "POOR"
+    else:
+        return "CRITICAL"
 # Cleanup task - run periodically
 @app.before_request
 def cleanup_old_session_data():

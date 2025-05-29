@@ -1,4 +1,4 @@
-# utils/pdf_generator.py - UPDATED WITH FIXED NETWORK COVERAGE INTEGRATION
+# utils/pdf_generator.py - ENHANCED WITH COMPREHENSIVE MAPPING
 
 from fpdf import FPDF
 import os
@@ -28,6 +28,25 @@ class RoutePDF(FPDF):
         self.warning_color = (253, 126, 20)
         self.success_color = (40, 167, 69)
         
+        # Map marker colors for different POI types
+        self.marker_colors = {
+            'start': 'green',
+            'end': 'red',
+            'blind_spot': 'darkred',      # >80° turns
+            'sharp_turn': 'red',          # 70-80° turns
+            'moderate_turn': 'orange',    # 45-70° turns
+            'hospital': 'blue',
+            'petrol_pump': 'purple',
+            'school': 'yellow',
+            'food': 'cyan',
+            'police': 'black',
+            'elevation_high': 'brown',
+            'elevation_low': 'lightgreen',
+            'network_dead': 'gray',
+            'network_poor': 'pink',
+            'network_good': 'lightblue'
+        }
+    
     def add_title_page(self):
         """Professional title page"""
         self.add_page()
@@ -52,7 +71,7 @@ class RoutePDF(FPDF):
         
         self.set_font('Arial', '', 12)
         self.set_xy(70, 32)
-        self.cell(0, 8, 'Advanced Route Safety & Analytics', 0, 1, 'L')
+        self.cell(0, 8, 'Advanced Route Safety & Analytics with Real-Time Network Data', 0, 1, 'L')
         
         # Report title
         self.set_xy(20, 100)
@@ -64,7 +83,7 @@ class RoutePDF(FPDF):
         self.set_xy(20, 140)
         self.set_font('Arial', '', 16)
         self.set_text_color(*self.secondary_color)
-        self.cell(170, 10, 'Comprehensive Safety Analysis & Risk Assessment', 0, 1, 'C')
+        self.cell(170, 10, 'Comprehensive Maps, Network Coverage & Safety Analysis', 0, 1, 'C')
         
         # Report details card
         self.set_xy(40, 170)
@@ -182,428 +201,499 @@ class RoutePDF(FPDF):
         self.set_xy(20, y_start + 12)
         self.multi_cell(170, 5, self.clean_text(content))
         self.ln(5)
-    
-    def add_complete_route_map(self, route_polyline, turns, risk_segments, pois_data, api_key=None):
-        """Complete route map with all hazards and POIs"""
+
+    def add_comprehensive_route_map(self, route_data, api_key=None):
+        """ENHANCEMENT 1: Comprehensive route map with ALL points marked with different colors"""
         self.add_page()
-        self.chapter_title("Complete Route Map with All Hazards & Points of Interest")
+        self.chapter_title("COMPREHENSIVE ROUTE MAP - ALL POINTS MARKED")
         
-        legend_content = """COMPLETE ROUTE MAP LEGEND:
-[DANGER] Red Markers: Critical blind spots (>70deg) - EXTREME CAUTION
-[WARNING] Orange Markers: Sharp turns (45-70deg) - HIGH CAUTION  
-[INFO] Blue Markers: Hospitals - Emergency medical services
-[FUEL] Purple Markers: Fuel stations - Refueling stops
-[SCHOOL] Green Markers: Schools - Speed limit zones (40 km/h)
-[FOOD] Brown Markers: Restaurants - Rest stops
-[NETWORK] Gray Areas: Network dead zones - No cellular coverage
+        # Enhanced legend with all marker types
+        legend_content = """COMPREHENSIVE ROUTE MAP LEGEND:
+    [START] Green: Route start point
+    [END] Red: Route destination point
+    [EXTREME] Dark Red: Blind spots (>80deg) - EXTREME DANGER
+    [DANGER] Red: Sharp turns (70-80deg) - HIGH DANGER
+    [CAUTION] Orange: Moderate turns (45-70deg) - CAUTION REQUIRED
+    [HOSPITAL] Blue: Hospitals - Emergency medical services
+    [FUEL] Purple: Petrol pumps - Fuel stations
+    [SCHOOL] Yellow: Schools - Speed limit zones (reduce to 40 km/h)
+    [FOOD] Cyan: Restaurants/Food stops - Rest areas
+    [POLICE] Black: Police stations - Security services
+    [HIGH-ELEV] Brown: High elevation points (>1000m)
+    [LOW-ELEV] Light Green: Low elevation points
+    [NETWORK-DEAD] Gray: Network dead zones - NO signal
+    [NETWORK-POOR] Pink: Poor network coverage
+    [NETWORK-GOOD] Light Blue: Good network coverage
 
-This comprehensive map shows your complete route with all identified hazards,
-safety services, and points of interest. Study this map carefully before travel."""
+    This map shows EVERY analyzed point with color-coded markers for instant
+    visual identification of hazards, services, and network coverage."""
         
-        self.add_info_card("Complete Route Map Information", legend_content, (240, 248, 255))
+        self.add_info_card("Comprehensive Map Legend", legend_content, (240, 248, 255))
         
-        if turns:
-            blind_spots = len([t for t in turns if t.get('angle', 0) > 70])
-            sharp_turns = len([t for t in turns if 60 <= t.get('angle', 0) <= 70])
-            moderate_turns = len([t for t in turns if 45 <= t.get('angle', 0) < 60])
-            
-            # POI counts
-            hospitals = pois_data.get('hospitals', {}) if pois_data else {}
-            petrol_bunks = pois_data.get('petrol_bunks', {}) if pois_data else {}
-            schools = pois_data.get('schools', {}) if pois_data else {}
-            food_stops = pois_data.get('food_stops', {}) if pois_data else {}
-            
-            stats_content = f"""COMPREHENSIVE ROUTE STATISTICS:
-Total Distance: Complete route mapped with {len(route_polyline)} GPS points
-Sharp Turns Identified: {len(turns)}
-* Critical Blind Spots (>70deg): {blind_spots}
-* High-Angle Turns (60-70deg): {sharp_turns}  
-* Moderate Turns (45-60deg): {moderate_turns}
+        # Get all data
+        route_points = route_data.get('route_points', [])
+        sharp_turns = route_data.get('sharp_turns', [])
+        elevation_data = route_data.get('elevation', [])
+        network_coverage = route_data.get('network_coverage', {})
+        pois = {
+            'hospitals': route_data.get('hospitals', {}),
+            'petrol_bunks': route_data.get('petrol_bunks', {}),  # FIXED: was 'petrel_bunks'
+            'schools': route_data.get('schools', {}),
+            'food_stops': route_data.get('food_stops', {}),
+            'police_stations': route_data.get('police_stations', {})
+        }
+        
+        # Calculate comprehensive statistics
+        blind_spots = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+        sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+        moderate_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
+        
+        high_elevations = len([e for e in elevation_data if e.get('elevation', 0) > 1000])
+        low_elevations = len([e for e in elevation_data if e.get('elevation', 0) < 500])
+        
+        dead_zones = len(network_coverage.get('dead_zones', []))
+        poor_zones = len(network_coverage.get('poor_zones', []))
+        
+        total_pois = sum(len(poi_dict) for poi_dict in pois.values())
+        
+        stats_content = f"""COMPREHENSIVE ROUTE STATISTICS:
+    Total Route Points Analyzed: {len(route_points)}
+    Total Distance: {route_data.get('distance', 'Unknown')}
+    Estimated Duration: {route_data.get('duration', 'Unknown')}
 
-Points of Interest Along Route:
-* Hospitals: {len(hospitals)} emergency medical facilities
-* Fuel Stations: {len(petrol_bunks)} refueling stops
-* Schools: {len(schools)} speed-limited zones
-* Restaurants: {len(food_stops)} rest stops
+    HAZARD ANALYSIS:
+    * Extreme Blind Spots (>80deg): {blind_spots} [Dark Red markers]
+    * High-Danger Sharp Turns (70-80deg): {sharp_danger} [Red markers]
+    * Moderate Caution Turns (45-70deg): {moderate_turns} [Orange markers]
+    Total Hazardous Turns: {len(sharp_turns)}
 
-Most Dangerous Turn: {max(t.get('angle', 0) for t in turns):.1f}deg
-Average Turn Severity: {sum(t.get('angle', 0) for t in turns) / len(turns):.1f}deg"""
-            
-            self.add_info_card("Complete Route Statistics", stats_content)
-        
-        if api_key and route_polyline and len(route_polyline) > 1:
-            markers = []
-            
-            # Start and end markers
-            markers.extend([
-                {'lat': route_polyline[0][0], 'lng': route_polyline[0][1], 'color': 'green', 'label': 'S'},
-                {'lat': route_polyline[-1][0], 'lng': route_polyline[-1][1], 'color': 'red', 'label': 'E'}
-            ])
-            
-            # Turn markers (limit to 15 for map clarity)
-            if turns:
-                for i, turn in enumerate(turns[:15], 1):
-                    angle = turn.get('angle', 0)
-                    color = 'red' if angle > 70 else 'orange' if angle > 60 else 'yellow'
-                    markers.append({
-                        'lat': turn['lat'], 'lng': turn['lng'], 
-                        'color': color, 'label': str(i)
-                    })
-            
-            # Add POI markers (sample locations based on route)
-            if pois_data:
-                poi_markers = self.create_poi_markers_for_map(route_polyline, pois_data)
-                markers.extend(poi_markers)
-            
-            # Calculate center
-            center_lat = sum(point[0] for point in route_polyline) / len(route_polyline)
-            center_lng = sum(point[1] for point in route_polyline) / len(route_polyline)
-            
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 8, "[MAP] COMPLETE ROUTE WITH ALL HAZARDS & POIs:", ln=True)
-            self.ln(3)
-            
-            if self.add_static_map_image(center_lat, center_lng, markers, api_key, zoom=11, size="640x360"):
-                self.set_font('Arial', 'I', 10)
-                poi_count = len(pois_data.get('hospitals', {})) + len(pois_data.get('petrol_bunks', {})) + len(pois_data.get('schools', {})) if pois_data else 0
-                self.cell(0, 5, f"Complete route showing {len(turns)} hazards and {poi_count} points of interest", ln=True, align='C')
-        
-        # Interactive map links
-        self.ln(8)
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 8, "INTERACTIVE MAP LINKS:", ln=True)
-        self.set_font('Arial', '', 10)
-        
-        if route_polyline and len(route_polyline) > 1:
-            start_point = route_polyline[0]
-            end_point = route_polyline[-1]
-            
-            # Full route link
-            full_route_url = f"https://www.google.com/maps/dir/{start_point[0]},{start_point[1]}/{end_point[0]},{end_point[1]}"
-            
-            links_content = f"""GOOGLE MAPS LINKS:
-Complete Route: {full_route_url}
+    ELEVATION ANALYSIS:
+    * High Elevation Points (>1000m): {high_elevations} [Brown markers]
+    * Low Elevation Points (<500m): {low_elevations} [Light Green markers]
+    Total Elevation Points: {len(elevation_data)}
 
-You can click these links to view the route in Google Maps for real-time navigation,
-traffic updates, and to explore points of interest in detail."""
-            
-            self.add_info_card("Interactive Navigation Links", links_content, (240, 255, 240))
+    NETWORK COVERAGE ANALYSIS:
+    * Dead Zones (No Signal): {dead_zones} [Gray markers]
+    * Poor Coverage Areas: {poor_zones} [Pink markers]
+    API Success Rate: {network_coverage.get('coverage_stats', {}).get('api_success_rate', 0):.1f}%
 
-    def create_poi_markers_for_map(self, route_polyline, pois_data):
-        """Create POI markers distributed along the route"""
+    POINTS OF INTEREST:
+    * Hospitals: {len(pois['hospitals'])} [Blue markers]
+    * Fuel Stations: {len(pois['petrol_bunks'])} [Purple markers]  # FIXED: was 'petrel_bunks'
+    * Schools: {len(pois['schools'])} [Yellow markers]
+    * Food Stops: {len(pois['food_stops'])} [Cyan markers]
+    * Police Stations: {len(pois['police_stations'])} [Black markers]
+    Total POIs: {total_pois}
+
+    SAFETY SCORE: {self.calculate_safety_score(sharp_turns, dead_zones, poor_zones)}/100"""
+        
+        self.add_info_card("Comprehensive Route Analysis", stats_content)
+        
+        if api_key and route_points:
+            # Create comprehensive markers list
+            all_markers = self.create_comprehensive_markers(route_data)
+            
+            if all_markers:
+                # Calculate map center
+                center_lat = sum(marker['lat'] for marker in all_markers) / len(all_markers)
+                center_lng = sum(marker['lng'] for marker in all_markers) / len(all_markers)
+                
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, "[COMPREHENSIVE MAP] ALL POINTS WITH COLOR-CODED MARKERS:", ln=True)
+                self.ln(3)
+                
+                if self.add_static_map_image(center_lat, center_lng, all_markers, api_key, zoom=10, size="640x480"):
+                    self.set_font('Arial', 'I', 10)
+                    self.cell(0, 5, f"Comprehensive map showing {len(all_markers)} analyzed points with color-coded markers", ln=True, align='C')
+                    
+                    # Add detailed marker count breakdown
+                    marker_counts = {}
+                    for marker in all_markers:
+                        marker_type = marker.get('type', 'unknown')
+                        marker_counts[marker_type] = marker_counts.get(marker_type, 0) + 1
+                    
+                    breakdown_text = "Marker Breakdown: " + ", ".join([f"{k.title()}: {v}" for k, v in marker_counts.items()])
+                    self.set_font('Arial', 'I', 8)
+                    self.multi_cell(0, 4, breakdown_text, align='C')
+
+    def create_comprehensive_markers(self, route_data):
+        """Create comprehensive markers for all types of points"""
         markers = []
+        route_points = route_data.get('route_points', [])
         
-        # Distribute POIs along route points (simplified approach)
-        route_length = len(route_polyline)
+        if not route_points:
+            return []
         
-        # Hospitals (blue markers)
-        hospitals = list(pois_data.get('hospitals', {}).keys())[:3]
-        for i, hospital in enumerate(hospitals):
-            if route_length > i * 20:
-                point_index = min(i * 20, route_length - 1)
-                point = route_polyline[point_index]
+        # 1. START AND END POINTS
+        markers.extend([
+            {
+                'lat': route_points[0][0], 'lng': route_points[0][1],
+                'color': self.marker_colors['start'], 'label': 'S', 'type': 'start'
+            },
+            {
+                'lat': route_points[-1][0], 'lng': route_points[-1][1],
+                'color': self.marker_colors['end'], 'label': 'E', 'type': 'end'
+            }
+        ])
+        
+        # 2. SHARP TURNS WITH ANGLE-BASED COLORS
+        sharp_turns = route_data.get('sharp_turns', [])
+        for i, turn in enumerate(sharp_turns[:25], 1):  # Limit to 25 for map clarity
+            angle = turn.get('angle', 0)
+            if angle > 80:
+                color = self.marker_colors['blind_spot']
+                label = f'B{i}'  # Blind spot
+                turn_type = 'blind_spot'
+            elif angle >= 70:
+                color = self.marker_colors['sharp_turn']
+                label = f'S{i}'  # Sharp turn
+                turn_type = 'sharp_turn'
+            else:
+                color = self.marker_colors['moderate_turn']
+                label = f'M{i}'  # Moderate turn
+                turn_type = 'moderate_turn'
+            
+            markers.append({
+                'lat': turn['lat'], 'lng': turn['lng'],
+                'color': color, 'label': label, 'type': turn_type,
+                'angle': angle
+            })
+        
+        # 3. ELEVATION POINTS
+        elevation_data = route_data.get('elevation', [])
+        for i, elev in enumerate(elevation_data[:10], 1):  # Limit to 10
+            elevation = elev.get('elevation', 0)
+            location = elev.get('location', {})
+            
+            if isinstance(location, dict) and 'lat' in location:
+                if elevation > 1000:
+                    color = self.marker_colors['elevation_high']
+                    label = f'H{i}'
+                    elev_type = 'elevation_high'
+                else:
+                    color = self.marker_colors['elevation_low']
+                    label = f'L{i}'
+                    elev_type = 'elevation_low'
+                
                 markers.append({
-                    'lat': point[0] + 0.002,  # Slight offset for visibility
-                    'lng': point[1] + 0.002,
-                    'color': 'blue',
-                    'label': f'H{i+1}'
+                    'lat': location['lat'], 'lng': location['lng'],
+                    'color': color, 'label': label, 'type': elev_type,
+                    'elevation': elevation
                 })
         
-        # Fuel stations (purple markers)  
-        petrol_bunks = list(pois_data.get('petrol_bunks', {}).keys())[:2]
-        for i, station in enumerate(petrol_bunks):
-            if route_length > (i + 1) * 30:
-                point_index = min((i + 1) * 30, route_length - 1)
-                point = route_polyline[point_index]
+        # 4. NETWORK COVERAGE POINTS
+        network_coverage = route_data.get('network_coverage', {})
+        dead_zones = network_coverage.get('dead_zones', [])
+        poor_zones = network_coverage.get('poor_zones', [])
+        
+        # Dead zones (gray markers)
+        for i, zone in enumerate(dead_zones[:5], 1):
+            coords = self.extract_coordinates(zone)
+            if coords:
                 markers.append({
-                    'lat': point[0] - 0.002,  # Slight offset
-                    'lng': point[1] + 0.002,
-                    'color': 'purple',
-                    'label': f'F{i+1}'
+                    'lat': coords['lat'], 'lng': coords['lng'],
+                    'color': self.marker_colors['network_dead'],
+                    'label': f'D{i}', 'type': 'network_dead'
+                })
+        
+        # Poor coverage zones (pink markers)
+        for i, zone in enumerate(poor_zones[:3], 1):
+            coords = self.extract_coordinates(zone)
+            if coords:
+                markers.append({
+                    'lat': coords['lat'], 'lng': coords['lng'],
+                    'color': self.marker_colors['network_poor'],
+                    'label': f'P{i}', 'type': 'network_poor'
+                })
+        
+        # 5. POINTS OF INTEREST - Distributed along route
+        pois_data = {
+            'hospitals': route_data.get('hospitals', {}),
+            'petrol_bunks': route_data.get('petrol_bunks', {}),  # FIXED: was 'petrel_bunks'
+            'schools': route_data.get('schools', {}),
+            'food_stops': route_data.get('food_stops', {}),
+            'police_stations': route_data.get('police_stations', {})
+        }
+        
+        poi_markers = self.create_distributed_poi_markers(route_points, pois_data)
+        markers.extend(poi_markers)
+        
+        return markers
+
+    def create_distributed_poi_markers(self, route_points, pois_data):
+        """Create POI markers distributed along the route"""
+        markers = []
+        route_length = len(route_points)
+        
+        if route_length == 0:
+            return markers
+        
+        # Hospitals (blue markers)
+        hospitals = list(pois_data.get('hospitals', {}).keys())[:4]
+        for i, hospital in enumerate(hospitals):
+            point_index = min(i * (route_length // max(len(hospitals), 1)), route_length - 1)
+            point = route_points[point_index]
+            markers.append({
+                'lat': point[0] + 0.002,  # Slight offset for visibility
+                'lng': point[1] + 0.002,
+                'color': self.marker_colors['hospital'],
+                'label': f'H{i+1}', 'type': 'hospital'
+            })
+        
+        # Petrol pumps (purple markers)
+        petrol_bunks = list(pois_data.get('petrol_bunks', {}).keys())[:3]
+        for i, station in enumerate(petrol_bunks):
+            point_index = min((i + 1) * (route_length // max(len(petrol_bunks) + 1, 1)), route_length - 1)
+            point = route_points[point_index]
+            markers.append({
+                'lat': point[0] - 0.002,
+                'lng': point[1] + 0.002,
+                'color': self.marker_colors['petrol_pump'],
+                'label': f'F{i+1}', 'type': 'petrol_pump'
+            })
+        
+        # Schools (yellow markers)
+        schools = list(pois_data.get('schools', {}).keys())[:3]
+        for i, school in enumerate(schools):
+            point_index = min((i + 2) * (route_length // max(len(schools) + 2, 1)), route_length - 1)
+            point = route_points[point_index]
+            markers.append({
+                'lat': point[0] + 0.001,
+                'lng': point[1] - 0.002,
+                'color': self.marker_colors['school'],
+                'label': f'Sc{i+1}', 'type': 'school'
+            })
+        
+        # Food stops (cyan markers)
+        food_stops = list(pois_data.get('food_stops', {}).keys())[:2]
+        for i, food in enumerate(food_stops):
+            point_index = min((i + 3) * (route_length // max(len(food_stops) + 3, 1)), route_length - 1)
+            point = route_points[point_index]
+            markers.append({
+                'lat': point[0] - 0.001,
+                'lng': point[1] - 0.001,
+                'color': self.marker_colors['food'],
+                'label': f'Fd{i+1}', 'type': 'food'
+            })
+        
+        # Police stations (black markers)
+        police_stations = list(pois_data.get('police_stations', {}).keys())[:2]
+        for i, police in enumerate(police_stations):
+            point_index = min((i + 4) * (route_length // max(len(police_stations) + 4, 1)), route_length - 1)
+            point = route_points[point_index]
+            markers.append({
+                'lat': point[0] + 0.003,
+                'lng': point[1] - 0.003,
+                'color': self.marker_colors['police'],
+                'label': f'Pl{i+1}', 'type': 'police'
+            })
+        
+        return markers
+
+    def add_dedicated_network_coverage_map(self, route_data, api_key=None):
+        """ENHANCEMENT 2: Dedicated network coverage map with detailed coverage points"""
+        self.add_page()
+        self.chapter_title("NETWORK COVERAGE MAP - DETAILED ANALYSIS")
+        
+        network_data = route_data.get('network_coverage', {})
+        
+        if not network_data or not network_data.get('coverage_analysis'):
+            no_data_content = """NETWORK COVERAGE MAP STATUS:
+Network coverage analysis data is not available.
+
+This could be due to:
+* Route analysis performed without network coverage
+* Network API services were not accessible
+* Coverage data processing failed
+
+RECOMMENDATIONS:
+* Re-analyze route with network coverage enabled
+* Check internet connectivity and API access
+* Contact support if issue persists"""
+            
+            self.add_info_card("Network Coverage Map Unavailable", no_data_content, (255, 248, 220))
+            return
+        
+        # Network coverage legend
+        coverage_legend = """NETWORK COVERAGE MAP LEGEND:
+[EXCELLENT] Dark Green: Excellent signal (>-70 dBm) - Full connectivity
+[GOOD] Green: Good signal (-70 to -85 dBm) - Reliable connectivity  
+[FAIR] Yellow: Fair signal (-85 to -100 dBm) - Adequate connectivity
+[POOR] Orange: Poor signal (-100 to -110 dBm) - Unreliable connectivity
+[DEAD] Red: No signal (<-110 dBm) - No connectivity
+[FAILED] Gray: API failed - Coverage unknown
+
+Each marker represents a real-time network coverage test point along your route.
+Coverage data obtained from live cellular network APIs."""
+        
+        self.add_info_card("Network Coverage Map Legend", coverage_legend, (240, 255, 240))
+        
+        # Coverage statistics
+        coverage_stats = network_data.get('coverage_stats', {})
+        coverage_analysis = network_data.get('coverage_analysis', [])
+        dead_zones = network_data.get('dead_zones', [])
+        poor_zones = network_data.get('poor_zones', [])
+        
+        # Calculate detailed statistics
+        quality_counts = coverage_stats.get('quality_distribution', {})
+        api_success_rate = coverage_stats.get('api_success_rate', 0)
+        overall_score = coverage_stats.get('overall_coverage_score', 0)
+        
+        coverage_stats_content = f"""NETWORK COVERAGE ANALYSIS RESULTS:
+Total Points Tested: {len(coverage_analysis)}
+API Success Rate: {api_success_rate:.1f}%
+Overall Coverage Score: {overall_score:.1f}/100
+
+SIGNAL QUALITY DISTRIBUTION:
+* Excellent Coverage: {quality_counts.get('excellent', 0)} points
+* Good Coverage: {quality_counts.get('good', 0)} points  
+* Fair Coverage: {quality_counts.get('fair', 0)} points
+* Poor Coverage: {quality_counts.get('poor', 0)} points
+* Dead Zones: {quality_counts.get('dead', 0)} points
+* API Failures: {quality_counts.get('api_failed', 0)} points
+
+CRITICAL ALERTS:
+* Confirmed Dead Zones: {len(dead_zones)} areas
+* Poor Coverage Areas: {len(poor_zones)} areas
+
+TECHNOLOGY AVAILABILITY:
+* 5G Coverage: {coverage_stats.get('technology_availability', {}).get('5G', 0)} points
+* 4G/LTE Coverage: {coverage_stats.get('technology_availability', {}).get('LTE', 0)} points
+* 3G Coverage: {coverage_stats.get('technology_availability', {}).get('UMTS', 0)} points
+* 2G Coverage: {coverage_stats.get('technology_availability', {}).get('GSM', 0)} points"""
+        
+        self.add_info_card("Network Coverage Statistics", coverage_stats_content)
+        
+        if api_key and coverage_analysis:
+            # Create network coverage markers
+            network_markers = self.create_network_coverage_markers(coverage_analysis, dead_zones, poor_zones)
+            
+            if network_markers:
+                # Calculate center point
+                center_lat = sum(marker['lat'] for marker in network_markers) / len(network_markers)
+                center_lng = sum(marker['lng'] for marker in network_markers) / len(network_markers)
+                
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, "[NETWORK MAP] REAL-TIME COVERAGE DATA WITH QUALITY MARKERS:", ln=True)
+                self.ln(3)
+                
+                if self.add_static_map_image(center_lat, center_lng, network_markers, api_key, zoom=10, size="640x480"):
+                    self.set_font('Arial', 'I', 10)
+                    self.cell(0, 5, f"Network coverage map showing {len(network_markers)} real-time test points", ln=True, align='C')
+                    
+                    # Coverage quality breakdown
+                    quality_breakdown = {}
+                    for marker in network_markers:
+                        quality = marker.get('coverage_quality', 'unknown')
+                        quality_breakdown[quality] = quality_breakdown.get(quality, 0) + 1
+                    
+                    breakdown_text = "Coverage Quality: " + ", ".join([f"{k.title()}: {v}" for k, v in quality_breakdown.items()])
+                    self.set_font('Arial', 'I', 8)
+                    self.multi_cell(0, 4, breakdown_text, align='C')
+        
+        # Network coverage safety recommendations
+        if dead_zones or poor_zones:
+            self.ln(5)
+            safety_recommendations = f"""NETWORK COVERAGE SAFETY RECOMMENDATIONS:
+
+CRITICAL DEAD ZONES ({len(dead_zones)} areas):
+* NO cellular coverage - Emergency calls impossible
+* Download offline maps before departure
+* Inform contacts of communication blackouts
+* Consider satellite communication devices
+* Travel with companions when possible
+
+POOR COVERAGE ZONES ({len(poor_zones)} areas):
+* Unreliable connectivity - Calls may drop
+* Send location updates before entering these areas
+* Keep devices fully charged
+* Use WiFi calling when available
+* Allow extra time for communications
+
+GENERAL NETWORK SAFETY:
+* Test your network provider's coverage along the route
+* Carry portable chargers/power banks
+* Download emergency contact numbers offline
+* Consider multiple network providers if traveling frequently
+* Know locations of cell towers along major routes"""
+            
+            self.add_info_card("Network Safety Recommendations", safety_recommendations, (255, 240, 245))
+
+    def create_network_coverage_markers(self, coverage_analysis, dead_zones, poor_zones):
+        """Create markers specifically for network coverage visualization"""
+        markers = []
+        
+        # Color mapping for network quality
+        quality_colors = {
+            'excellent': 'darkgreen',
+            'good': 'green', 
+            'fair': 'yellow',
+            'poor': 'orange',
+            'dead': 'red',
+            'api_failed': 'gray'
+        }
+        
+        # Add coverage analysis points
+        for i, point in enumerate(coverage_analysis):
+            coords = point.get('coordinates', {})
+            if isinstance(coords, dict) and 'lat' in coords and 'lng' in coords:
+                quality = point.get('coverage_quality', 'unknown')
+                color = quality_colors.get(quality, 'gray')
+                
+                markers.append({
+                    'lat': coords['lat'],
+                    'lng': coords['lng'],
+                    'color': color,
+                    'label': str(i + 1),
+                    'type': 'network_coverage',
+                    'coverage_quality': quality
+                })
+        
+        # Highlight dead zones with special markers
+        for i, zone in enumerate(dead_zones[:10], 1):  # Limit to 10
+            coords = self.extract_coordinates(zone)
+            if coords:
+                markers.append({
+                    'lat': coords['lat'],
+                    'lng': coords['lng'],
+                    'color': 'darkred',
+                    'label': f'DEAD{i}',
+                    'type': 'dead_zone',
+                    'coverage_quality': 'dead'
                 })
         
         return markers
 
-    def add_network_coverage_section(self, route_data, api_key=None):
-        """FIXED: Add comprehensive network coverage analysis section"""
-        # Extract network coverage data from route_data
-        network_data = route_data.get('network_coverage', {})
-        
-        self.add_page()
-        self.chapter_title("Network Coverage Analysis - Real-Time Data")
-        
-        if not network_data or not network_data.get('coverage_analysis'):
-            # Add section indicating no network data
-            no_data_content = """NETWORK COVERAGE STATUS:
-Network coverage analysis was not performed or data is unavailable.
-
-POSSIBLE REASONS:
-* Route analysis was performed without network coverage
-* Network API services were not accessible
-* Route data does not include network coverage information
-
-RECOMMENDATIONS:
-* Re-analyze the route to include network coverage
-* Check network connectivity and try again
-* Contact support if the issue persists
-
-SAFETY PRECAUTIONS:
-* Download offline maps before travel
-* Inform contacts of your travel plans
-* Carry backup communication methods
-* Keep emergency contact numbers accessible"""
-            
-            self.add_info_card("Network Coverage Information", no_data_content, (255, 248, 220))
-            return
-        
-        # Get coverage statistics
-        coverage_stats = network_data.get('coverage_stats', {})
-        dead_zones = network_data.get('dead_zones', [])
-        poor_zones = network_data.get('poor_zones', [])
-        coverage_analysis = network_data.get('coverage_analysis', [])
-        
-        # Network coverage overview
-        if coverage_stats.get('error'):
-            # Error in coverage analysis
-            error_content = f"""NETWORK ANALYSIS ERROR:
-{coverage_stats['error']}
-
-STATUS: Analysis could not be completed
-API SUCCESS RATE: 0%
-DATA QUALITY: ERROR
-
-IMPACT ON SAFETY:
-* Network coverage status unknown
-* Emergency communication reliability uncertain
-* GPS navigation may be affected in some areas"""
-            
-            self.add_info_card("Coverage Analysis Status", error_content, (255, 240, 240))
-        
-        elif coverage_stats.get('api_success_count', 0) > 0:
-            # Successful coverage analysis
-            api_success_rate = coverage_stats.get('api_success_rate', 0)
-            overall_score = coverage_stats.get('overall_coverage_score', -1)
-            total_coverage = coverage_stats.get('total_coverage_percentage', 0)
-            
-            # Determine coverage quality
-            if overall_score > 80:
-                coverage_quality = "EXCELLENT"
-                quality_color = (240, 255, 240)
-                quality_icon = "[OK]"
-            elif overall_score > 60:
-                coverage_quality = "GOOD"
-                quality_color = (248, 249, 250)
-                quality_icon = "[OK]"
-            elif overall_score > 40:
-                coverage_quality = "FAIR"
-                quality_color = (255, 248, 220)
-                quality_icon = "[CAUTION]"
-            else:
-                coverage_quality = "POOR"
-                quality_color = (255, 240, 240)
-                quality_icon = "[WARNING]"
-            
-            overview_content = f"""{quality_icon} NETWORK COVERAGE SUMMARY:
-Overall Coverage Quality: {coverage_quality}
-Coverage Score: {overall_score:.1f}% (out of 100%)
-Total Coverage Percentage: {total_coverage:.1f}%
-
-REAL-TIME API DATA QUALITY:
-Points Analyzed: {coverage_stats.get('total_points_analyzed', 0)}
-Successful API Calls: {coverage_stats.get('api_success_count', 0)}
-Failed API Calls: {coverage_stats.get('api_failed_count', 0)}
-API Success Rate: {api_success_rate:.1f}%
-Data Quality: {coverage_stats.get('data_quality', 'UNKNOWN')}"""
-            
-            self.add_info_card("Network Coverage Overview", overview_content, quality_color)
-            
-            # Coverage quality distribution
-            quality_dist = coverage_stats.get('quality_distribution', {})
-            if quality_dist:
-                distribution_content = f"""SIGNAL QUALITY DISTRIBUTION:
-Excellent Signal: {quality_dist.get('excellent', 0)} points
-Good Signal: {quality_dist.get('good', 0)} points
-Fair Signal: {quality_dist.get('fair', 0)} points
-Poor Signal: {quality_dist.get('poor', 0)} points
-Dead Zones: {quality_dist.get('dead', 0)} points
-API Failures: {quality_dist.get('api_failed', 0)} points
-
-TECHNOLOGY AVAILABILITY:
-5G Available: {coverage_stats.get('technology_availability', {}).get('5G', 0)} points
-LTE/4G Available: {coverage_stats.get('technology_availability', {}).get('LTE', 0)} points
-3G Available: {coverage_stats.get('technology_availability', {}).get('UMTS', 0)} points
-2G Available: {coverage_stats.get('technology_availability', {}).get('GSM', 0)} points"""
-                
-                self.add_info_card("Signal Distribution Analysis", distribution_content)
-        
-        else:
-            # No successful API calls
-            no_success_content = f"""NETWORK ANALYSIS STATUS:
-No successful network coverage data retrieved from real-time APIs.
-
-ANALYSIS ATTEMPTED:
-Total Points: {coverage_stats.get('total_points_analyzed', 0)}
-API Failures: {coverage_stats.get('api_failed_count', 0)}
-Success Rate: 0%
-
-This could indicate network connectivity issues or API service limitations.
-Network coverage status along your route is unknown."""
-            
-            self.add_info_card("Coverage Analysis Status", no_success_content, (255, 240, 240))
-        
-        # Dead zones information - CRITICAL SAFETY ALERT
-        if dead_zones:
-            self.ln(5)
-            self.set_font('Arial', 'B', 14)
-            self.set_text_color(*self.danger_color)
-            self.cell(0, 8, f"CRITICAL ALERT: NETWORK DEAD ZONES DETECTED ({len(dead_zones)}):", ln=True)
-            self.set_text_color(0, 0, 0)
-            
-            dead_zones_content = f"""[DANGER] CRITICAL COVERAGE ALERTS:
-{len(dead_zones)} location(s) with NO CELLULAR COVERAGE detected along your route.
-
-SAFETY IMPLICATIONS - EXTREMELY IMPORTANT:
-* Emergency calls (112/911) may NOT be possible
-* GPS navigation may be severely affected
-* Real-time traffic updates will be unavailable
-* Communication with family/fleet will be interrupted
-* Roadside assistance calls may not work
-
-MANDATORY SAFETY RECOMMENDATIONS:
-* INFORM others of your exact travel plans and timeline
-* DOWNLOAD offline maps and save them before departure
-* CARRY alternative communication devices (satellite phone if available)
-* PLAN for offline navigation backup methods
-* EXERCISE extreme caution in these areas
-* TRAVEL with companions if possible
-* ENSURE vehicle is in excellent mechanical condition"""
-            
-            self.add_info_card("DEAD ZONES - CRITICAL SAFETY ALERT", dead_zones_content, (255, 235, 238))
-        
-        # Poor coverage zones information
-        if poor_zones:
-            self.ln(5)
-            self.set_font('Arial', 'B', 12)
-            self.set_text_color(*self.warning_color)
-            self.cell(0, 8, f"WARNING: POOR COVERAGE ZONES ({len(poor_zones)}):", ln=True)
-            self.set_text_color(0, 0, 0)
-            
-            poor_zones_content = f"""[WARNING] WEAK SIGNAL AREAS:
-{len(poor_zones)} location(s) with poor cellular coverage detected.
-
-POTENTIAL ISSUES:
-* Slow data speeds and connectivity
-* Dropped calls highly likely
-* Intermittent network connectivity
-* Reduced GPS navigation accuracy
-* Delayed emergency response communications
-
-SAFETY RECOMMENDATIONS:
-* Download offline maps before travel
-* Inform contacts of potential communication delays
-* Keep all devices fully charged with power banks
-* Consider alternative routes if critical connectivity needed
-* Send location updates before entering these areas
-* Use WiFi calling when available"""
-            
-            self.add_info_card("POOR COVERAGE ALERT", poor_zones_content, (255, 248, 220))
-        
-        # Add network coverage map if API key is available and we have coverage data
-        if api_key and coverage_analysis and len(coverage_analysis) > 0:
-            self.ln(5)
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 8, "NETWORK COVERAGE MAP WITH REAL-TIME DATA:", ln=True)
-            
-            # Create markers for network coverage points
-            coverage_markers = []
-            
-            # Add dead zone markers (red) - limit to 5 for map clarity
-            for i, zone in enumerate(dead_zones[:5], 1):
-                if isinstance(zone, dict) and 'start_coordinates' in zone:
-                    coords = zone['start_coordinates']
-                elif isinstance(zone, dict) and 'coordinates' in zone:
-                    coords = zone['coordinates']
-                else:
-                    continue
-                    
+    def extract_coordinates(self, zone_data):
+        """Extract coordinates from various zone data formats"""
+        if isinstance(zone_data, dict):
+            # Try different coordinate keys
+            for coord_key in ['coordinates', 'start_coordinates', 'location']:
+                coords = zone_data.get(coord_key, {})
                 if isinstance(coords, dict) and 'lat' in coords and 'lng' in coords:
-                    coverage_markers.append({
-                        'lat': coords['lat'],
-                        'lng': coords['lng'],
-                        'color': 'red',
-                        'label': f'D{i}'
-                    })
-            
-            # Add poor coverage markers (orange) - limit to 3
-            for i, zone in enumerate(poor_zones[:3], 1):
-                if isinstance(zone, dict) and 'start_coordinates' in zone:
-                    coords = zone['start_coordinates']
-                elif isinstance(zone, dict) and 'coordinates' in zone:
-                    coords = zone['coordinates']
-                else:
-                    continue
-                    
-                if isinstance(coords, dict) and 'lat' in coords and 'lng' in coords:
-                    coverage_markers.append({
-                        'lat': coords['lat'],
-                        'lng': coords['lng'],
-                        'color': 'orange',
-                        'label': f'P{i}'
-                    })
-            
-            # Add excellent coverage markers (green) - show some good areas too
-            excellent_points = [p for p in coverage_analysis if p.get('coverage_quality') == 'excellent'][:2]
-            for i, point in enumerate(excellent_points, 1):
-                coords = point.get('coordinates', {})
-                if isinstance(coords, dict) and 'lat' in coords and 'lng' in coords:
-                    coverage_markers.append({
-                        'lat': coords['lat'],
-                        'lng': coords['lng'],
-                        'color': 'green',
-                        'label': f'G{i}'
-                    })
-            
-            if coverage_markers:
-                # Calculate center point for map
-                center_lat = sum(marker['lat'] for marker in coverage_markers) / len(coverage_markers)
-                center_lng = sum(marker['lng'] for marker in coverage_markers) / len(coverage_markers)
-                
-                if self.add_static_map_image(center_lat, center_lng, coverage_markers, api_key, zoom=10, size="640x360"):
-                    self.ln(3)
-                    self.set_font('Arial', 'I', 10)
-                    legend_text = "Map Legend: D# = Dead Zones (Red), P# = Poor Coverage (Orange), G# = Good Coverage (Green)"
-                    self.cell(0, 5, legend_text, ln=True, align='C')
+                    return coords
+        return None
+
+    def calculate_safety_score(self, sharp_turns, dead_zones_count, poor_zones_count):
+        """Calculate overall route safety score (0-100)"""
+        base_score = 100
         
-        # Add network coverage safety recommendations
-        self.ln(8)
-        safety_tips_content = """NETWORK COVERAGE SAFETY GUIDELINES:
-
-BEFORE DEPARTURE:
-* Download offline maps for entire route (Google Maps offline feature)
-* Download important documents and save locally
-* Inform family/friends of planned route and estimated timing
-* Ensure all devices are fully charged
-* Carry portable power banks for longer trips
-* Save emergency contact numbers in phone memory
-
-DURING TRAVEL:
-* In dead zones, move to higher ground for better signal if possible
-* Send location updates when signal is available
-* Use WiFi at rest stops to communicate
-* Keep emergency services numbers (112/911) easily accessible
-* Monitor device battery levels carefully
-
-EMERGENCY PROCEDURES:
-* Emergency services (112/911) may work even without network bars
-* Know locations of nearest hospitals and police stations
-* Carry physical maps as backup navigation
-* Consider satellite communicator for remote areas
-* Travel with companion vehicles when possible"""
+        # Deduct points for hazards
+        blind_spots = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+        sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+        moderate_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
         
-        self.add_info_card("Comprehensive Network Safety Guidelines", safety_tips_content, (248, 249, 250))
-    
-    def add_static_map_image(self, center_lat, center_lng, markers, api_key, zoom=15, size="640x360"):
-        """Add Static Map with proper sizing and positioning"""
+        # Deduct points based on severity
+        base_score -= blind_spots * 15        # 15 points per blind spot
+        base_score -= sharp_danger * 10       # 10 points per sharp turn
+        base_score -= moderate_turns * 5      # 5 points per moderate turn
+        base_score -= dead_zones_count * 8    # 8 points per dead zone
+        base_score -= poor_zones_count * 4    # 4 points per poor coverage zone
+        
+        return max(0, min(100, base_score))
+
+    def add_static_map_image(self, center_lat, center_lng, markers, api_key, zoom=15, size="640x480"):
+        """Enhanced static map with better error handling and larger size"""
         try:
             base_url = "https://maps.googleapis.com/maps/api/staticmap"
             params = [
@@ -611,46 +701,53 @@ EMERGENCY PROCEDURES:
                 f"zoom={zoom}",
                 f"size={size}",
                 "maptype=roadmap",
-                "style=feature:poi|visibility:simplified"
+                "style=feature:poi|visibility:simplified",
+                "style=feature:transit|visibility:off"
             ]
             
-            for marker in markers:
+            # Add markers (limit to 50 for API constraints)
+            for marker in markers[:50]:
                 color = marker.get('color', 'red')
-                label = marker.get('label', '')
+                label = marker.get('label', '')[:1]  # Single character only
                 lat = marker.get('lat')
                 lng = marker.get('lng')
-                params.append(f"markers=size:mid|color:{color}|label:{label}|{lat},{lng}")
+                
+                if lat and lng:
+                    marker_param = f"markers=size:mid|color:{color}"
+                    if label and label.isalnum():
+                        marker_param += f"|label:{label}"
+                    marker_param += f"|{lat},{lng}"
+                    params.append(marker_param)
             
             params.append(f"key={api_key}")
             
             url = f"{base_url}?" + "&".join(params)
-            response = requests.get(url, timeout=20)
+            response = requests.get(url, timeout=30)
             
-            if response.status_code == 200:
+            if response.status_code == 200 and len(response.content) > 1000:
                 with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
                     temp.write(response.content)
                     temp_path = temp.name
                 
-                # Calculate available space and image dimensions
+                # Enhanced image sizing
                 current_y = self.get_y()
-                available_height = 270 - current_y  # Leave space for footer
+                available_height = 250 - current_y
                 
-                # Optimal sizing for maps
-                img_width = 160  # Fits well within page margins
-                img_height = 90  # 16:9 aspect ratio for better display
+                # Larger image for better visibility
+                img_width = 170  # Wider image
+                img_height = 120  # Taller image
                 
-                # Check if we have enough space
-                if available_height < img_height + 10:
+                if available_height < img_height + 15:
                     self.add_page()
                     current_y = self.get_y()
                 
-                # Center the image horizontally
+                # Center the image
                 x_position = (210 - img_width) / 2
                 
-                # Add professional border
+                # Professional border
                 self.set_draw_color(200, 200, 200)
-                self.set_line_width(0.5)
-                self.rect(x_position - 2, current_y - 2, img_width + 4, img_height + 4, 'D')
+                self.set_line_width(0.8)
+                self.rect(x_position - 3, current_y - 3, img_width + 6, img_height + 6, 'D')
                 
                 # Add the image
                 self.image(temp_path, x=x_position, y=current_y, w=img_width, h=img_height)
@@ -659,7 +756,7 @@ EMERGENCY PROCEDURES:
                 os.unlink(temp_path)
                 
                 # Move cursor below image
-                self.set_y(current_y + img_height + 5)
+                self.set_y(current_y + img_height + 8)
                 
                 return True
             
@@ -668,68 +765,16 @@ EMERGENCY PROCEDURES:
             print(f"Error adding static map: {e}")
             return False
 
-    def add_street_view_image(self, lat, lng, api_key, heading=0, pitch=0, fov=90):
-        """Add Street View with proper sizing and positioning"""
-        try:
-            url = f"https://maps.googleapis.com/maps/api/streetview?size=640x360&location={lat},{lng}&heading={heading}&pitch={pitch}&fov={fov}&key={api_key}"
-            response = requests.get(url, timeout=20)
-            
-            if response.status_code == 200 and len(response.content) > 1000:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp:
-                    temp.write(response.content)
-                    temp_path = temp.name
-                
-                # Calculate available space and image dimensions
-                current_y = self.get_y()
-                available_height = 270 - current_y  # Leave space for footer
-                
-                # Optimal sizing for street view
-                img_width = 160  # Fits well within page margins
-                img_height = 90  # 16:9 aspect ratio
-                
-                # Check if we have enough space
-                if available_height < img_height + 10:
-                    self.add_page()
-                    current_y = self.get_y()
-                
-                # Center the image horizontally
-                x_position = (210 - img_width) / 2
-                
-                # Add professional border
-                self.set_draw_color(200, 200, 200)
-                self.set_line_width(0.5)
-                self.rect(x_position - 2, current_y - 2, img_width + 4, img_height + 4, 'D')
-                
-                # Add the image
-                self.image(temp_path, x=x_position, y=current_y, w=img_width, h=img_height)
-                
-                # Clean up
-                os.unlink(temp_path)
-                
-                # Move cursor below image
-                self.set_y(current_y + img_height + 5)
-                
-                return True
-            
-            return False
-        except Exception as e:
-            print(f"Error adding street view: {e}")
-            return False
-
-    # Include all other methods from the original PDF generator...
-    # (add_risk_level_only, add_table, add_individual_turn_pages, etc.)
-    
+    # Include other necessary methods from original PDF generator
     def add_risk_level_only(self, risk_segments):
-        """Add only risk level text - NO CHARTS/DIAGRAMS"""
+        """Add only risk level text"""
         high = len([s for s in risk_segments if s.get('risk_level') == 'HIGH'])
         medium = len([s for s in risk_segments if s.get('risk_level') == 'MEDIUM'])
         low = len([s for s in risk_segments if s.get('risk_level') == 'LOW'])
 
-        # If no data, use default values
         if high + medium + low == 0:
             high, medium, low = 3, 5, 10
 
-        # Overall risk assessment
         if high > 0:
             risk_level = "HIGH RISK"
             risk_message = "[WARNING] CRITICAL: This route contains high-risk segments requiring extreme caution."
@@ -745,14 +790,12 @@ EMERGENCY PROCEDURES:
 
         self.chapter_title("Overall Route Risk Level")
         
-        # Risk level in large, prominent text
         self.set_font('Arial', 'B', 18)
         self.set_text_color(*risk_color)
         self.cell(0, 12, f"RISK LEVEL: {risk_level}", 0, 1, 'C')
         self.set_text_color(0, 0, 0)
         self.ln(5)
         
-        # Risk breakdown
         self.set_font('Arial', 'B', 12)
         self.cell(0, 8, "Risk Segment Breakdown:", ln=True)
         self.set_font('Arial', '', 11)
@@ -764,19 +807,18 @@ Total Segments Analyzed: {high + medium + low}"""
         self.multi_cell(0, 6, breakdown_text)
         self.ln(5)
         
-        # Risk message
         self.add_info_card("Risk Assessment Summary", risk_message, 
                           (255, 240, 240) if high > 0 else (255, 248, 220) if medium > 0 else (240, 255, 240))
 
 
-# UPDATED MAIN FUNCTION WITH PROPER INTEGRATION
+# UPDATED MAIN FUNCTION WITH ALL ENHANCEMENTS
 def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol_bunks,
                 hospital_list, schools=None, food_stops=None, police_stations=None, 
                 elevation=None, weather=None, risk_segments=None, compliance=None,
                 emergency=None, environmental=None, toll_gates=None, bridges=None, 
                 vehicle_type="car", type="full", api_key=None, major_highways=None, route_data=None):
     """
-    ENHANCED PDF GENERATION WITH COMPLETE NETWORK COVERAGE INTEGRATION
+    ENHANCED PDF GENERATION WITH COMPREHENSIVE MAPPING
     """
     
     # Handle None values
@@ -801,16 +843,8 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
             elif isinstance(turn, (list, tuple)) and len(turn) >= 3:
                 enhanced_turns.append({'lat': turn[0], 'lng': turn[1], 'angle': turn[2]})
     
-    enhanced_weather = []
-    if weather:
-        for w in weather:
-            if isinstance(w, dict):
-                enhanced_weather.append(w)
-            elif isinstance(w, (list, tuple)) and len(w) >= 3:
-                enhanced_weather.append({'location': w[0], 'temp': w[1], 'description': w[2]})
-    
     # Create PDF
-    pdf = RoutePDF("Professional Route Safety Analysis - Complete Report with Network Coverage")
+    pdf = RoutePDF("Enhanced Route Safety Analysis - Comprehensive Maps & Network Coverage")
     pdf.alias_nb_pages()
     
     # 1. TITLE PAGE
@@ -828,37 +862,21 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         f"Analysis Date: {datetime.datetime.now().strftime('%B %d, %Y at %I:%M %p')}"
     )
     
-    # 3. COMPLETE MAP WITH ROUTE, HAZARDS & POIs
-    route_polyline = [[turn['lat'], turn['lng']] for turn in enhanced_turns] if enhanced_turns else []
-    if not route_polyline and route_data.get('route_points'):
-        route_polyline = route_data['route_points']
+    # 3. ENHANCEMENT 1: COMPREHENSIVE ROUTE MAP WITH ALL POINTS
+    pdf.add_comprehensive_route_map(route_data, api_key)
     
-    pois_data = {
-        'hospitals': hospital_list,
-        'petrol_bunks': petrol_bunks,
-        'schools': schools,
-        'food_stops': food_stops,
-        'police_stations': police_stations
-    }
-    
-    if route_polyline or api_key:
-        pdf.add_complete_route_map(route_polyline, enhanced_turns, risk_segments, pois_data, api_key)
-    
-    # 4. NETWORK COVERAGE ANALYSIS - COMPLETE SECTION
-    pdf.add_network_coverage_section(route_data, api_key)
+    # 4. ENHANCEMENT 2: DEDICATED NETWORK COVERAGE MAP
+    pdf.add_dedicated_network_coverage_map(route_data, api_key)
     
     # 5. OVERALL ROUTE RISK LEVEL
     pdf.add_page()
     pdf.add_risk_level_only(risk_segments)
     
-    # Continue with other sections as before...
-    # (Add all remaining sections from original PDF generator)
-    
     # Save PDF
     try:
         pdf.output(filename)
-        print(f"Enhanced PDF report with network coverage generated successfully: {filename}")
+        print(f"Enhanced PDF report with comprehensive maps generated successfully: {filename}")
         return filename
     except Exception as e:
-        print(f"Error generating PDF: {e}")
+        print(f"Error generating enhanced PDF: {e}")
         return None
