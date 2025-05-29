@@ -5,6 +5,8 @@ import json
 import logging
 from geopy.distance import geodesic
 import time
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # Set up logger
 logger = logging.getLogger(__name__)

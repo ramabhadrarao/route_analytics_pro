@@ -210,7 +210,181 @@ class EnhancedRoutePDF(FPDF):
         self.set_xy(15, self.get_y() + 3)
         self.cell(180, 9, self.clean_text(title), 0, 1, 'L')
         self.ln(5)
+    
+    def add_network_coverage_analysis_page(self, route_data):
+        """Add dedicated network coverage analysis page with map and legend table"""
+        network_coverage = route_data.get('network_coverage', {})
+        coverage_analysis = network_coverage.get('coverage_analysis', [])
         
+        if not coverage_analysis:
+            return
+        
+        self.add_page()
+        self.add_section_header("NETWORK COVERAGE ANALYSIS - REAL-TIME DATA", "info")
+        
+        # Coverage Statistics Summary
+        coverage_stats = network_coverage.get('coverage_stats', {})
+        stats_info = [
+            ['Total Points Analyzed', str(coverage_stats.get('total_points_analyzed', 0))],
+            ['API Success Rate', f"{coverage_stats.get('api_success_rate', 0):.1f}%"],
+            ['Overall Coverage Score', f"{coverage_stats.get('overall_coverage_score', 0):.1f}/100"],
+            ['Dead Zones Detected', str(len(network_coverage.get('dead_zones', [])))],
+            ['Poor Coverage Areas', str(len(network_coverage.get('poor_zones', [])))],
+            ['Data Quality', coverage_stats.get('data_quality', 'Unknown')]
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'NETWORK COVERAGE STATISTICS', 0, 1, 'L')
+        self.create_simple_table(stats_info, [80, 100])
+        
+        # Network Coverage Points Table (following schools/hospital table format)
+        self.ln(5)
+        self.add_section_header("NETWORK COVERAGE POINTS - TESTED LOCATIONS", "info")
+        
+        # Create detailed table with headers (same format as hospital/school tables)
+        headers = ['S.No', 'Coverage Quality', 'Signal Strength', 'Latitude', 'Longitude', 'Technologies']
+        col_widths = [15, 35, 30, 25, 25, 55]
+        
+        # Header row
+        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(230, 230, 230)
+        self.set_text_color(0, 0, 0)
+        
+        x_start = 10
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(x_start + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows (limit to first 20 points for space)
+        self.set_font('Arial', '', 8)
+        self.set_fill_color(255, 255, 255)
+        self.set_text_color(0, 0, 0)
+        
+        for idx, point in enumerate(coverage_analysis[:20], 1):
+            if self.get_y() > 270:
+                self.add_page()
+                self.add_section_header("NETWORK COVERAGE POINTS (Continued)", "info")
+            
+            coords = point.get('coordinates', {})
+            coverage_data = point.get('coverage_data', {})
+            quality = point.get('coverage_quality', 'unknown')
+            
+            # Get signal strength and technologies
+            signal_dbm = coverage_data.get('strongest_signal_dbm', -120)
+            technologies = coverage_data.get('available_technologies', [])
+            tech_str = ', '.join(technologies[:2]) if technologies else 'None'
+            
+            # Color code based on quality
+            if quality == 'excellent':
+                self.set_text_color(40, 167, 69)  # Green
+            elif quality == 'good':
+                self.set_text_color(13, 110, 253)  # Blue
+            elif quality == 'fair':
+                self.set_text_color(253, 126, 20)  # Orange
+            elif quality == 'poor':
+                self.set_text_color(220, 53, 69)  # Red
+            elif quality == 'dead':
+                self.set_text_color(108, 117, 125)  # Gray
+            else:
+                self.set_text_color(0, 0, 0)  # Black for API failed
+            
+            y_pos = self.get_y()
+            
+            # S.No
+            self.set_xy(10, y_pos)
+            self.cell(15, 8, str(idx), 1, 0, 'C')
+            
+            # Coverage Quality
+            self.set_xy(25, y_pos)
+            quality_display = quality.replace('_', ' ').title()
+            self.cell(35, 8, quality_display, 1, 0, 'C')
+            
+            # Signal Strength
+            self.set_xy(60, y_pos)
+            signal_display = f"{signal_dbm} dBm" if signal_dbm > -120 else "No Signal"
+            self.cell(30, 8, signal_display, 1, 0, 'C')
+            
+            # Latitude
+            self.set_xy(90, y_pos)
+            lat = coords.get('lat', 0)
+            self.cell(25, 8, f"{lat:.4f}", 1, 0, 'C')
+            
+            # Longitude
+            self.set_xy(115, y_pos)
+            lng = coords.get('lng', 0)
+            self.cell(25, 8, f"{lng:.4f}", 1, 0, 'C')
+            
+            # Technologies
+            self.set_xy(140, y_pos)
+            self.cell(55, 8, self.clean_text(tech_str[:15]), 1, 0, 'L')
+            
+            self.ln(8)
+        
+        # Reset text color
+        self.set_text_color(0, 0, 0)
+        
+        # Network Coverage Legend Table (same format as hospital/school tables)
+        self.ln(5)
+        self.add_section_header("NETWORK COVERAGE LEGEND", "success")
+        
+        legend_headers = ['Coverage Level', 'Signal Range (dBm)', 'Description', 'Color Code']
+        legend_col_widths = [30, 35, 80, 30]
+        
+        # Legend header
+        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(230, 230, 230)
+        self.set_text_color(0, 0, 0)
+        
+        for i, (header, width) in enumerate(zip(legend_headers, legend_col_widths)):
+            self.set_xy(10 + sum(legend_col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Legend data
+        legend_data = [
+            ['Excellent', '> -70 dBm', 'Full connectivity', 'Green'],
+            ['Good', '-70 to -85 dBm', 'Reliable connectivity', 'Blue'],
+            ['Fair', '-85 to -100 dBm', 'Adequate connectivity', 'Orange'],
+            ['Poor', '-100 to -110 dBm', 'Unreliable connectivity', 'Red'],
+            ['Dead Zones', '< -110 dBm', 'No connectivity', 'Gray'],
+            ['API Failed', 'Unknown', 'Coverage data unavailable', 'Black']
+        ]
+        
+        self.set_font('Arial', '', 9)
+        self.set_fill_color(255, 255, 255)
+        
+        for level, signal_range, description, color in legend_data:
+            y_pos = self.get_y()
+            
+            # Coverage Level
+            self.set_xy(10, y_pos)
+            self.cell(30, 8, level, 1, 0, 'C')
+            
+            # Signal Range
+            self.set_xy(40, y_pos)
+            self.cell(35, 8, signal_range, 1, 0, 'C')
+            
+            # Description
+            self.set_xy(75, y_pos)
+            self.cell(80, 8, description, 1, 0, 'L')
+            
+            # Color Code
+            self.set_xy(155, y_pos)
+            self.cell(30, 8, color, 1, 0, 'C')
+            
+            self.ln(8)
+        
+        # Summary
+        self.ln(3)
+        self.set_font('Arial', 'B', 10)
+        self.set_text_color(0, 0, 0)
+        total_points = len(coverage_analysis)
+        dead_zones_count = len(network_coverage.get('dead_zones', []))
+        summary_text = f"Total Network Coverage Analysis: {total_points} points tested | {dead_zones_count} dead zones identified"
+        self.cell(0, 8, self.clean_text(summary_text), 0, 1, 'L')   
+
     def add_enhanced_route_overview(self, route_data):
         """Enhanced route overview with statistics"""
         self.add_page()
@@ -517,7 +691,7 @@ class EnhancedRoutePDF(FPDF):
             # State Permits
             self.add_page()  # New page for state permits
             self.add_section_header("STATE PERMITS & INTER-STATE COMPLIANCE", "warning")
-            
+            self.set_text_color(0, 0, 0)
             self.set_font('Arial', 'B', 12)
             self.cell(0, 8, 'STATES CROSSED: Delhi, Haryana (Estimated)', 0, 1, 'L')
             self.ln(3)
@@ -718,15 +892,15 @@ class EnhancedRoutePDF(FPDF):
             self.cell(0, 6, 'Maps require Google Maps API key configuration.', 0, 1, 'L')
         
         # Add warning footer
-        self.set_y(-40)
-        self.set_fill_color(*danger_color)
-        self.rect(10, self.get_y(), 190, 20, 'F')
+        # self.set_y(-40)
+        # self.set_fill_color(*danger_color)
+        # self.rect(10, self.get_y(), 190, 20, 'F')
         
-        self.set_font('Arial', 'B', 12)
-        self.set_text_color(255, 255, 255)
-        self.set_xy(15, self.get_y() + 4)
-        warning_text = f"WARNING: {danger_level} - Exercise EXTREME CAUTION at {lat:.4f}, {lng:.4f}"
-        self.cell(180, 12, self.clean_text(warning_text), 0, 1, 'C')
+        # self.set_font('Arial', 'B', 12)
+        # self.set_text_color(255, 255, 255)
+        # self.set_xy(15, self.get_y() + 4)
+        # warning_text = f"WARNING: {danger_level} - Exercise EXTREME CAUTION at {lat:.4f}, {lng:.4f}"
+        # self.cell(180, 12, self.clean_text(warning_text), 0, 1, 'C')
     
     def get_turn_safety_recommendations(self, angle):
         """Get safety recommendations based on turn angle"""
@@ -786,24 +960,32 @@ class EnhancedRoutePDF(FPDF):
             print("🔄 Attempting to generate Street View...")
             street_view_success = self.add_street_view_image(lat, lng, api_key, 
                                                            x_pos=10, y_pos=current_y, 
-                                                           width=85, height=60)
+                                                           width=85, height=50)
             
             # Generate satellite map
             print("🔄 Attempting to generate Satellite Map...")
             satellite_success = self.add_satellite_map_image(lat, lng, api_key,
                                                            x_pos=105, y_pos=current_y,
-                                                           width=85, height=60)
+                                                           width=85, height=50)
             
-            # Move cursor below both images
-            self.set_y(current_y + 65)
-            
-            # Add coordinates info with status
-            self.set_font('Arial', '', 9)
-            self.set_text_color(0, 0, 0)
-            success_street = "OK" if street_view_success else "FAILED"
-            success_satellite = "OK" if satellite_success else "FAILED"
-            status_text = f'GPS: {lat:.6f}, {lng:.6f} | Street View: {success_street} | Satellite: {success_satellite}'
-            self.cell(0, 6, status_text, 0, 1, 'C')
+            # # Move cursor below both images
+            # # Move cursor below both images
+            # self.set_y(current_y + 65)
+
+            # # CHECK SPACE BEFORE ADDING COORDINATES - PREVENT PAGE BREAK
+            # coordinates_y = self.get_y()
+            # if coordinates_y > 280:  # Not enough space for coordinates (need ~12px)
+            #     self.add_page()
+            #     coordinates_y = self.get_y()
+
+            # # Add coordinates info with status
+            # self.set_font('Arial', '', 9)
+            # self.set_text_color(0, 0, 0)
+            # success_street = "OK" if street_view_success else "FAILED"
+            # success_satellite = "OK" if satellite_success else "FAILED"
+            # status_text = f'GPS: {lat:.6f}, {lng:.6f} | Street View: {success_street} | Satellite: {success_satellite}'
+            # self.set_y(coordinates_y)  # Ensure we're at the right position
+            # self.cell(0, 6, status_text, 0, 1, 'C')
             
             # Debug API status
             if not street_view_success:
@@ -1347,7 +1529,7 @@ class EnhancedRoutePDF(FPDF):
         
         return markers
     
-    def add_static_map_with_route(self, center_lat, center_lng, markers, route_points, api_key, zoom=11):
+    def add_static_map_with_route(self, center_lat, center_lng, markers, route_points, api_key, zoom=8):
         """Add static map with route and markers"""
         try:
             # Create route path
@@ -1578,17 +1760,20 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         
         # 2. Enhanced route overview with fixed text rendering
         pdf.add_enhanced_route_overview(route_data)
-        
-        # 3. Detailed POI tables with coordinates and distances
-        pdf.add_detailed_poi_tables(route_data)
-        
-        # 4. Comprehensive map with all markers
         if api_key:
             pdf.add_comprehensive_map_with_markers(route_data, api_key)
+        pdf.add_regulatory_compliance_page(route_data, vehicle_type)
+        # 3. Detailed POI tables with coordinates and distances
+        pdf.add_detailed_poi_tables(route_data)
+        # 4. Network Coverage Analysis Page
+        pdf.add_network_coverage_analysis_page(route_data)
+        
+        # 4. Comprehensive map with all markers
+        
         
         # 5. *** WORKING FEATURE *** Regulatory Compliance Analysis with fixed text
         print("📋 Adding Working Regulatory Compliance Analysis...")
-        pdf.add_regulatory_compliance_page(route_data, vehicle_type)
+        
         
         # 6. *** WORKING FEATURE *** Individual turn analysis pages with street views and maps
         if api_key and route_data.get('sharp_turns'):
