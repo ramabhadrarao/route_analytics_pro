@@ -129,8 +129,11 @@ class EnhancedRoutePDF(FPDF):
             
             return ''.join(clean_chars)
 
+    # Enhanced PDF Generator method for Elevation Analysis with GPS Coordinates Table
+    # Add this method to your EnhancedRoutePDF class in utils/pdf_generator.py
+
     def add_elevation_analysis_page(self, route_data, api_key=None):
-        """Add elevation analysis page"""
+        """Add comprehensive elevation analysis page with GPS coordinates table"""
         if not ElevationAnalyzer:
             return
         
@@ -142,10 +145,10 @@ class EnhancedRoutePDF(FPDF):
                 return
             
             self.add_page()
-            self.add_section_header("ELEVATION ANALYSIS - GRADIENT RISK ASSESSMENT", "info")
+            self.add_section_header("ELEVATION ANALYSIS - GPS COORDINATES & GRADIENT DETAILS", "info")
             self.set_text_color(0, 0, 0)
             
-            # Elevation Statistics
+            # Elevation Statistics Summary
             stats = analysis.get('elevation_statistics', {})
             elevation_data = [
                 ['Minimum Elevation', f"{stats.get('min_elevation', 0):.0f} m"],
@@ -160,43 +163,23 @@ class EnhancedRoutePDF(FPDF):
             self.cell(0, 8, 'ELEVATION PROFILE STATISTICS', 0, 1, 'L')
             self.create_simple_table(elevation_data, [70, 110])
             
-            # Risk Assessment
-            risk_assessment = analysis.get('risk_assessment', {})
-            risk_level = risk_assessment.get('overall_risk_level', 'LOW')
-            
+            # KEY ELEVATION POINTS SUMMARY TABLE
             self.ln(5)
-            self.set_font('Arial', 'B', 12)
+            self.add_section_header("KEY ELEVATION POINTS SUMMARY", "success")
             
-            if risk_level in ['EXTREME', 'HIGH']:
-                self.set_text_color(220, 53, 69)
-                status_symbol = '❌'
-            elif risk_level == 'MEDIUM':
-                self.set_text_color(253, 126, 20)
-                status_symbol = '⚠️'
-            else:
-                self.set_text_color(40, 167, 69)
-                status_symbol = '✅'
-            
-            self.cell(8, 8, status_symbol, 0, 0, 'C')
-            self.cell(0, 8, f' ELEVATION RISK LEVEL: {risk_level}', 0, 1, 'L')
-            
-            # Risk Segments
-            risk_segments = risk_assessment.get('risk_segments', [])
-            if risk_segments:
-                self.ln(5)
-                self.set_text_color(0, 0, 0)
-                self.set_font('Arial', 'B', 12)
-                self.cell(0, 8, 'HIGH-RISK ELEVATION SEGMENTS', 0, 1, 'L')
-                
-                headers = ['Location', 'Risk Level', 'Gradient %', 'Type']
-                col_widths = [50, 30, 25, 75]
+            elevation_summary_table = analysis.get('elevation_summary_table', [])
+            if elevation_summary_table:
+                # Headers for summary table
+                summary_headers = ['Description', 'GPS Coordinates', 'Elevation (m)', 'Distance (km)', 'Significance']
+                summary_col_widths = [35, 45, 25, 25, 55]
                 
                 # Header row
                 self.set_font('Arial', 'B', 9)
                 self.set_fill_color(230, 230, 230)
+                self.set_text_color(0, 0, 0)
                 
-                for i, (header, width) in enumerate(zip(headers, col_widths)):
-                    self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+                for i, (header, width) in enumerate(zip(summary_headers, summary_col_widths)):
+                    self.set_xy(10 + sum(summary_col_widths[:i]), self.get_y())
                     self.cell(width, 10, header, 1, 0, 'C', True)
                 self.ln(10)
                 
@@ -204,39 +187,252 @@ class EnhancedRoutePDF(FPDF):
                 self.set_font('Arial', '', 8)
                 self.set_fill_color(255, 255, 255)
                 
-                for segment in risk_segments[:10]:  # Top 10 risk segments
+                for point in elevation_summary_table:
                     y_pos = self.get_y()
                     
-                    # Location
+                    # Description
                     self.set_xy(10, y_pos)
-                    coords = segment.get('location', {})
-                    location_str = f"{coords.get('lat', 0):.4f}, {coords.get('lng', 0):.4f}"
-                    self.cell(50, 8, location_str, 1, 0, 'C')
+                    self.cell(35, 8, self.clean_text(point['description']), 1, 0, 'L')
                     
-                    # Risk Level
-                    self.set_xy(60, y_pos)
-                    risk = segment.get('risk_level', 'UNKNOWN')
-                    self.cell(30, 8, risk, 1, 0, 'C')
+                    # GPS Coordinates
+                    self.set_xy(45, y_pos)
+                    self.cell(45, 8, point['gps_coordinates'], 1, 0, 'C')
                     
-                    # Gradient
+                    # Elevation
                     self.set_xy(90, y_pos)
-                    gradient = abs(segment.get('gradient_percent', 0))
-                    self.cell(25, 8, f"{gradient:.1f}%", 1, 0, 'C')
+                    self.cell(25, 8, f"{point['elevation_meters']}", 1, 0, 'C')
                     
-                    # Type
+                    # Distance
                     self.set_xy(115, y_pos)
-                    risk_type = segment.get('risk_type', 'UNKNOWN').replace('_', ' ')
-                    self.cell(75, 8, risk_type, 1, 0, 'L')
+                    self.cell(25, 8, f"{point['distance_km']}", 1, 0, 'C')
+                    
+                    # Significance
+                    self.set_xy(140, y_pos)
+                    self.cell(55, 8, self.clean_text(point['significance'][:20]), 1, 0, 'L')
                     
                     self.ln(8)
             
-            # Recommendations
+            # COMPREHENSIVE GPS COORDINATES & ELEVATION TABLE
+            self.add_page()  # New page for detailed table
+            self.add_section_header("COMPREHENSIVE GPS COORDINATES & ELEVATION TABLE", "primary")
+            
+            gps_elevation_table = analysis.get('gps_elevation_table', [])
+            if gps_elevation_table:
+                # Table headers
+                headers = ['S.No', 'GPS Coordinates', 'Elevation (m)', 'Distance (km)', 'Gradient (%)', 'Category']
+                col_widths = [15, 50, 25, 25, 25, 45]
+                
+                # Header row
+                self.set_font('Arial', 'B', 9)
+                self.set_fill_color(230, 230, 230)
+                self.set_text_color(0, 0, 0)
+                
+                for i, (header, width) in enumerate(zip(headers, col_widths)):
+                    self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+                    self.cell(width, 10, header, 1, 0, 'C', True)
+                self.ln(10)
+                
+                # Data rows (limit to first 30 points per page for space management)
+                self.set_font('Arial', '', 8)
+                self.set_fill_color(255, 255, 255)
+                
+                points_per_page = 30
+                total_points = len(gps_elevation_table)
+                
+                for page_start in range(0, total_points, points_per_page):
+                    if page_start > 0:
+                        self.add_page()
+                        self.add_section_header(f"GPS COORDINATES TABLE (Continued - Points {page_start+1}-{min(page_start+points_per_page, total_points)})", "primary")
+                        
+                        # Repeat headers
+                        self.set_font('Arial', 'B', 9)
+                        self.set_fill_color(230, 230, 230)
+                        for i, (header, width) in enumerate(zip(headers, col_widths)):
+                            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+                            self.cell(width, 10, header, 1, 0, 'C', True)
+                        self.ln(10)
+                        self.set_font('Arial', '', 8)
+                        self.set_fill_color(255, 255, 255)
+                    
+                    page_end = min(page_start + points_per_page, total_points)
+                    
+                    for point in gps_elevation_table[page_start:page_end]:
+                        if self.get_y() > 270:  # Check for page overflow
+                            break
+                        
+                        y_pos = self.get_y()
+                        
+                        # Color code based on risk level
+                        risk_level = point.get('risk_level', 'LOW')
+                        if risk_level == 'CRITICAL':
+                            self.set_text_color(220, 53, 69)  # Red
+                        elif risk_level == 'HIGH':
+                            self.set_text_color(253, 126, 20)  # Orange
+                        elif risk_level == 'MEDIUM':
+                            self.set_text_color(108, 117, 125)  # Gray
+                        else:
+                            self.set_text_color(0, 0, 0)  # Black
+                        
+                        # S.No
+                        self.set_xy(10, y_pos)
+                        self.cell(15, 8, str(point['s_no']), 1, 0, 'C')
+                        
+                        # GPS Coordinates
+                        self.set_xy(25, y_pos)
+                        coords_text = point['gps_coordinates'][:20] + '...' if len(point['gps_coordinates']) > 20 else point['gps_coordinates']
+                        self.cell(50, 8, coords_text, 1, 0, 'C')
+                        
+                        # Elevation
+                        self.set_xy(75, y_pos)
+                        self.cell(25, 8, f"{point['elevation_meters']}", 1, 0, 'C')
+                        
+                        # Distance
+                        self.set_xy(100, y_pos)
+                        self.cell(25, 8, f"{point['distance_km']}", 1, 0, 'C')
+                        
+                        # Gradient
+                        self.set_xy(125, y_pos)
+                        gradient_text = f"{point['gradient_percent']:+.1f}"  # Show + or - sign
+                        self.cell(25, 8, gradient_text, 1, 0, 'C')
+                        
+                        # Category
+                        self.set_xy(150, y_pos)
+                        category = point['category'][:15] + '...' if len(point['category']) > 15 else point['category']
+                        self.cell(45, 8, self.clean_text(category), 1, 0, 'L')
+                        
+                        self.ln(8)
+            
+            # Reset text color
+            self.set_text_color(0, 0, 0)
+            
+            # CRITICAL ELEVATION POINTS ANALYSIS
+            self.add_page()
+            self.add_section_header("CRITICAL ELEVATION POINTS ANALYSIS", "danger")
+            
+            critical_points = analysis.get('critical_elevation_points', {})
+            
+            # Steep Climbs
+            steep_climbs = critical_points.get('steep_climbs', [])
+            if steep_climbs:
+                self.set_font('Arial', 'B', 12)
+                self.set_text_color(220, 53, 69)
+                self.cell(0, 8, f'CRITICAL: {len(steep_climbs)} STEEP CLIMB SECTIONS', 0, 1, 'L')
+                self.set_text_color(0, 0, 0)
+                
+                # Create table for steep climbs
+                climb_headers = ['S.No', 'GPS Location', 'Elevation (m)', 'Distance (km)', 'Gradient (%)']
+                climb_widths = [15, 50, 25, 25, 25]
+                
+                self.set_font('Arial', 'B', 9)
+                self.set_fill_color(255, 230, 230)  # Light red background
+                for i, (header, width) in enumerate(zip(climb_headers, climb_widths)):
+                    self.set_xy(10 + sum(climb_widths[:i]), self.get_y())
+                    self.cell(width, 8, header, 1, 0, 'C', True)
+                self.ln(8)
+                
+                self.set_font('Arial', '', 8)
+                self.set_fill_color(255, 255, 255)
+                
+                for idx, climb in enumerate(steep_climbs[:10], 1):  # Show top 10
+                    y_pos = self.get_y()
+                    
+                    self.set_xy(10, y_pos)
+                    self.cell(15, 6, str(idx), 1, 0, 'C')
+                    
+                    self.set_xy(25, y_pos)
+                    self.cell(50, 6, climb['gps'][:20], 1, 0, 'C')
+                    
+                    self.set_xy(75, y_pos)
+                    self.cell(25, 6, f"{climb['elevation']}", 1, 0, 'C')
+                    
+                    self.set_xy(100, y_pos)
+                    self.cell(25, 6, f"{climb['distance']}", 1, 0, 'C')
+                    
+                    self.set_xy(125, y_pos)
+                    self.cell(25, 6, f"+{climb['gradient']:.1f}", 1, 0, 'C')
+                    
+                    self.ln(6)
+                
+                self.ln(5)
+            
+            # Steep Descents
+            steep_descents = critical_points.get('steep_descents', [])
+            if steep_descents:
+                self.set_font('Arial', 'B', 12)
+                self.set_text_color(220, 53, 69)
+                self.cell(0, 8, f'WARNING: {len(steep_descents)} STEEP DESCENT SECTIONS', 0, 1, 'L')
+                self.set_text_color(0, 0, 0)
+                
+                # Create table for steep descents (similar structure)
+                self.set_font('Arial', 'B', 9)
+                self.set_fill_color(255, 230, 230)
+                for i, (header, width) in enumerate(zip(climb_headers, climb_widths)):
+                    self.set_xy(10 + sum(climb_widths[:i]), self.get_y())
+                    self.cell(width, 8, header, 1, 0, 'C', True)
+                self.ln(8)
+                
+                self.set_font('Arial', '', 8)
+                self.set_fill_color(255, 255, 255)
+                
+                for idx, descent in enumerate(steep_descents[:10], 1):
+                    y_pos = self.get_y()
+                    
+                    self.set_xy(10, y_pos)
+                    self.cell(15, 6, str(idx), 1, 0, 'C')
+                    
+                    self.set_xy(25, y_pos)
+                    self.cell(50, 6, descent['gps'][:20], 1, 0, 'C')
+                    
+                    self.set_xy(75, y_pos)
+                    self.cell(25, 6, f"{descent['elevation']}", 1, 0, 'C')
+                    
+                    self.set_xy(100, y_pos)
+                    self.cell(25, 6, f"{descent['distance']}", 1, 0, 'C')
+                    
+                    self.set_xy(125, y_pos)
+                    self.cell(25, 6, f"{descent['gradient']:.1f}", 1, 0, 'C')  # Negative gradient
+                    
+                    self.ln(6)
+            
+            # High Altitude Points
+            high_altitude = critical_points.get('high_altitude', [])
+            if high_altitude:
+                self.ln(5)
+                self.set_font('Arial', 'B', 12)
+                self.set_text_color(13, 110, 253)
+                self.cell(0, 8, f'HIGH ALTITUDE: {len(high_altitude)} POINTS ABOVE 2000M', 0, 1, 'L')
+                self.set_text_color(0, 0, 0)
+                
+                self.set_font('Arial', '', 9)
+                for idx, point in enumerate(high_altitude[:5], 1):  # Show top 5
+                    self.cell(0, 6, f"{idx}. {point['gps']} - {point['elevation']}m at {point['distance']}km", 0, 1, 'L')
+            
+            # Risk Assessment Summary
+            risk_assessment = analysis.get('risk_assessment', {})
+            risk_level = risk_assessment.get('overall_risk_level', 'LOW')
+            
+            self.ln(5)
+            self.set_font('Arial', 'B', 14)
+            
+            if risk_level in ['EXTREME', 'HIGH']:
+                self.set_text_color(220, 53, 69)
+                status_symbol = 'CRITICAL'
+            elif risk_level == 'MEDIUM':
+                self.set_text_color(253, 126, 20)
+                status_symbol = 'CAUTION'
+            else:
+                self.set_text_color(40, 167, 69)
+                status_symbol = 'SAFE'
+            
+            self.cell(0, 10, f'ELEVATION RISK ASSESSMENT: {risk_level} ({status_symbol})', 0, 1, 'C')
+            self.set_text_color(0, 0, 0)
+            
+            # Driving Recommendations
             recommendations = analysis.get('driving_recommendations', [])
             if recommendations:
                 self.ln(5)
                 self.set_font('Arial', 'B', 12)
-                self.set_text_color(0, 0, 0)
-                self.cell(0, 8, 'ELEVATION-BASED DRIVING RECOMMENDATIONS', 0, 1, 'L')
+                self.cell(0, 8, 'ELEVATION-SPECIFIC DRIVING RECOMMENDATIONS', 0, 1, 'L')
                 
                 for rec in recommendations:
                     priority = rec.get('priority', 'MEDIUM')
@@ -275,10 +471,12 @@ class EnhancedRoutePDF(FPDF):
                     
                     self.ln(5)
             
-            print("✅ Elevation Analysis page added successfully")
+            print("✅ Enhanced Elevation Analysis with GPS coordinates table added successfully")
             
         except Exception as e:
-            print(f"❌ Error adding elevation analysis: {e}")
+            print(f"❌ Error adding enhanced elevation analysis: {e}")
+            import traceback
+            traceback.print_exc()
 
     def add_emergency_planning_page(self, route_data, api_key=None):
         """Add emergency planning page"""

@@ -1,4 +1,4 @@
-# utils/advanced_features/elevation_analyzer.py - FULLY IMPLEMENTABLE
+# utils/advanced_features/elevation_analyzer.py - ENHANCED WITH GPS COORDINATES TABLE
 
 import requests
 import json
@@ -9,21 +9,21 @@ import tempfile
 import os
 
 class ElevationAnalyzer:
-    """Advanced elevation analysis using Google Elevation API and Open Elevation API"""
+    """Advanced elevation analysis with GPS coordinates table for PDF reports"""
     
     def __init__(self, google_api_key=None):
         self.google_api_key = google_api_key
         self.open_elevation_url = "https://api.open-elevation.com/api/v1/lookup"
     
     def analyze_route_elevation(self, route_points: List) -> Dict:
-        """Complete elevation analysis with gradient risk assessment"""
+        """Complete elevation analysis with detailed GPS coordinates table"""
         
         if not route_points:
             return {'error': 'No route points provided'}
         
-        print("⛰️ Starting Advanced Elevation Analysis...")
+        print("⛰️ Starting Enhanced Elevation Analysis with GPS Coordinates...")
         
-        # Sample points for elevation analysis (max 512 for Google API)
+        # Sample points for elevation analysis (max 100 for comprehensive table)
         sampled_points = self.sample_route_points(route_points, max_points=100)
         
         # Get elevation data
@@ -32,18 +32,234 @@ class ElevationAnalyzer:
         if not elevation_data:
             return {'error': 'Failed to retrieve elevation data'}
         
-        # Advanced analysis
+        # Enhanced analysis with GPS coordinates table
         analysis = {
             'elevation_profile': elevation_data,
             'gradient_analysis': self.analyze_gradients(elevation_data),
             'ascent_descent_mapping': self.map_ascent_descent(elevation_data),
             'risk_assessment': self.assess_gradient_risks(elevation_data),
             'elevation_statistics': self.calculate_elevation_stats(elevation_data),
-            'driving_recommendations': self.generate_elevation_recommendations(elevation_data)
+            'driving_recommendations': self.generate_elevation_recommendations(elevation_data),
+            # NEW: GPS coordinates table for PDF
+            'gps_elevation_table': self.create_gps_elevation_table(elevation_data),
+            'elevation_summary_table': self.create_elevation_summary_table(elevation_data),
+            # NEW: Categorized elevation points
+            'critical_elevation_points': self.identify_critical_elevation_points(elevation_data),
+            'table_headers': ['S.No', 'GPS Coordinates', 'Elevation (m)', 'Distance (km)', 'Gradient (%)', 'Category'],
+            'pdf_ready_data': True
         }
         
         return analysis
     
+    def create_gps_elevation_table(self, elevation_data: List[Dict]) -> List[Dict]:
+        """Create comprehensive GPS coordinates and elevation table for PDF"""
+        
+        if not elevation_data:
+            return []
+        
+        gps_table = []
+        
+        for i, point in enumerate(elevation_data, 1):
+            location = point.get('location', {})
+            elevation = point.get('elevation', 0)
+            distance = point.get('distance_from_start', 0)
+            
+            # Calculate gradient to previous point
+            gradient = 0.0
+            if i > 1 and i <= len(elevation_data):
+                prev_point = elevation_data[i-2]  # i-2 because we start from 1
+                elevation_diff = elevation - prev_point.get('elevation', 0)
+                distance_diff = distance - prev_point.get('distance_from_start', 0)
+                
+                if distance_diff > 0:
+                    gradient = (elevation_diff / (distance_diff * 1000)) * 100  # Convert to percentage
+            
+            # Categorize elevation point
+            category = self.categorize_elevation_point(elevation, gradient)
+            
+            table_row = {
+                's_no': i,
+                'gps_coordinates': f"{location.get('lat', 0):.6f}, {location.get('lng', 0):.6f}",
+                'latitude': location.get('lat', 0),
+                'longitude': location.get('lng', 0),
+                'elevation_meters': round(elevation, 1),
+                'distance_km': round(distance, 2),
+                'gradient_percent': round(gradient, 2),
+                'category': category,
+                'risk_level': self.determine_elevation_risk(elevation, gradient),
+                # Additional data for enhanced analysis
+                'elevation_change': round(elevation - elevation_data[0].get('elevation', 0), 1) if elevation_data else 0,
+                'is_peak': self.is_elevation_peak(elevation_data, i-1),
+                'is_valley': self.is_elevation_valley(elevation_data, i-1)
+            }
+            
+            gps_table.append(table_row)
+        
+        print(f"✅ Created GPS elevation table with {len(gps_table)} points")
+        return gps_table
+    
+    def create_elevation_summary_table(self, elevation_data: List[Dict]) -> List[Dict]:
+        """Create summary table for key elevation statistics"""
+        
+        if not elevation_data:
+            return []
+        
+        elevations = [point['elevation'] for point in elevation_data]
+        
+        # Find extreme points
+        min_elevation_idx = elevations.index(min(elevations))
+        max_elevation_idx = elevations.index(max(elevations))
+        
+        min_point = elevation_data[min_elevation_idx]
+        max_point = elevation_data[max_elevation_idx]
+        
+        summary_table = [
+            {
+                'description': 'Route Start Point',
+                'gps_coordinates': f"{elevation_data[0]['location']['lat']:.6f}, {elevation_data[0]['location']['lng']:.6f}",
+                'elevation_meters': round(elevation_data[0]['elevation'], 1),
+                'distance_km': 0.0,
+                'significance': 'Starting elevation'
+            },
+            {
+                'description': 'Lowest Point',
+                'gps_coordinates': f"{min_point['location']['lat']:.6f}, {min_point['location']['lng']:.6f}",
+                'elevation_meters': round(min_point['elevation'], 1),
+                'distance_km': round(min_point['distance_from_start'], 2),
+                'significance': 'Valley/Minimum elevation'
+            },
+            {
+                'description': 'Highest Point',
+                'gps_coordinates': f"{max_point['location']['lat']:.6f}, {max_point['location']['lng']:.6f}",
+                'elevation_meters': round(max_point['elevation'], 1),
+                'distance_km': round(max_point['distance_from_start'], 2),
+                'significance': 'Peak/Maximum elevation'
+            },
+            {
+                'description': 'Route End Point',
+                'gps_coordinates': f"{elevation_data[-1]['location']['lat']:.6f}, {elevation_data[-1]['location']['lng']:.6f}",
+                'elevation_meters': round(elevation_data[-1]['elevation'], 1),
+                'distance_km': round(elevation_data[-1]['distance_from_start'], 2),
+                'significance': 'Ending elevation'
+            }
+        ]
+        
+        return summary_table
+    
+    def identify_critical_elevation_points(self, elevation_data: List[Dict]) -> Dict:
+        """Identify critical elevation points for special attention"""
+        
+        if not elevation_data:
+            return {}
+        
+        critical_points = {
+            'steep_climbs': [],
+            'steep_descents': [],
+            'high_altitude': [],
+            'elevation_peaks': [],
+            'elevation_valleys': []
+        }
+        
+        # Analyze each point
+        for i, point in enumerate(elevation_data):
+            elevation = point.get('elevation', 0)
+            location = point.get('location', {})
+            distance = point.get('distance_from_start', 0)
+            
+            # Calculate gradient
+            gradient = 0.0
+            if i > 0:
+                prev_point = elevation_data[i-1]
+                elevation_diff = elevation - prev_point.get('elevation', 0)
+                distance_diff = distance - prev_point.get('distance_from_start', 0)
+                
+                if distance_diff > 0:
+                    gradient = (elevation_diff / (distance_diff * 1000)) * 100
+            
+            point_info = {
+                'gps': f"{location.get('lat', 0):.6f}, {location.get('lng', 0):.6f}",
+                'elevation': round(elevation, 1),
+                'distance': round(distance, 2),
+                'gradient': round(gradient, 2)
+            }
+            
+            # Categorize critical points
+            if gradient > 8:
+                critical_points['steep_climbs'].append(point_info)
+            elif gradient < -8:
+                critical_points['steep_descents'].append(point_info)
+            
+            if elevation > 2000:  # High altitude (>2000m)
+                critical_points['high_altitude'].append(point_info)
+            
+            if self.is_elevation_peak(elevation_data, i):
+                critical_points['elevation_peaks'].append(point_info)
+            
+            if self.is_elevation_valley(elevation_data, i):
+                critical_points['elevation_valleys'].append(point_info)
+        
+        return critical_points
+    
+    def categorize_elevation_point(self, elevation: float, gradient: float) -> str:
+        """Categorize elevation point based on elevation and gradient"""
+        
+        # Gradient-based categorization
+        if abs(gradient) > 12:
+            return "EXTREME GRADIENT"
+        elif abs(gradient) > 8:
+            return "STEEP GRADIENT"
+        elif abs(gradient) > 5:
+            return "MODERATE GRADIENT"
+        
+        # Elevation-based categorization
+        if elevation > 3000:
+            return "HIGH ALTITUDE"
+        elif elevation > 2000:
+            return "MODERATE ALTITUDE"
+        elif elevation > 1000:
+            return "ELEVATED"
+        elif elevation < 100:
+            return "LOW ELEVATION"
+        else:
+            return "NORMAL"
+    
+    def determine_elevation_risk(self, elevation: float, gradient: float) -> str:
+        """Determine risk level based on elevation and gradient"""
+        
+        if abs(gradient) > 12 or elevation > 3500:
+            return "CRITICAL"
+        elif abs(gradient) > 8 or elevation > 2500:
+            return "HIGH"
+        elif abs(gradient) > 5 or elevation > 1500:
+            return "MEDIUM"
+        else:
+            return "LOW"
+    
+    def is_elevation_peak(self, elevation_data: List[Dict], index: int) -> bool:
+        """Check if point is an elevation peak"""
+        
+        if index <= 0 or index >= len(elevation_data) - 1:
+            return False
+        
+        current_elevation = elevation_data[index]['elevation']
+        prev_elevation = elevation_data[index - 1]['elevation']
+        next_elevation = elevation_data[index + 1]['elevation']
+        
+        return current_elevation > prev_elevation and current_elevation > next_elevation
+    
+    def is_elevation_valley(self, elevation_data: List[Dict], index: int) -> bool:
+        """Check if point is an elevation valley"""
+        
+        if index <= 0 or index >= len(elevation_data) - 1:
+            return False
+        
+        current_elevation = elevation_data[index]['elevation']
+        prev_elevation = elevation_data[index - 1]['elevation']
+        next_elevation = elevation_data[index + 1]['elevation']
+        
+        return current_elevation < prev_elevation and current_elevation < next_elevation
+    
+    # [Include all existing methods from the original file]
     def sample_route_points(self, route_points: List, max_points: int = 100) -> List:
         """Sample route points evenly for elevation analysis"""
         if len(route_points) <= max_points:
