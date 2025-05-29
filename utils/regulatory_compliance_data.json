@@ -1,0 +1,296 @@
+{
+  "regulatory_compliance_database": {
+    "cmvr_compliance": {
+      "cmvr_1989_base": {
+        "title": "Central Motor Vehicle Rules, 1989",
+        "last_updated": "2022-11-15",
+        "key_provisions": {
+          "vehicle_classification": {
+            "light_motor_vehicle": {
+              "weight_limit": "3500 kg",
+              "passenger_limit": "9 persons",
+              "license_required": "LMV"
+            },
+            "medium_goods_vehicle": {
+              "weight_range": "3501-12000 kg",
+              "license_required": "HMV",
+              "route_restrictions": true
+            },
+            "heavy_goods_vehicle": {
+              "weight_range": ">12000 kg",
+              "license_required": "HMV",
+              "mandatory_permits": true
+            },
+            "transport_vehicle": {
+              "passenger_capacity": ">9 persons",
+              "license_required": "PSV",
+              "route_permit_mandatory": true
+            }
+          },
+          "speed_limits": {
+            "urban_areas": {
+              "light_vehicles": "50 km/h",
+              "heavy_vehicles": "40 km/h",
+              "near_schools": "25 km/h"
+            },
+            "highways": {
+              "light_vehicles": "100 km/h",
+              "heavy_vehicles": "80 km/h",
+              "expressways": "120 km/h (light only)"
+            },
+            "rural_roads": {
+              "all_vehicles": "70 km/h",
+              "heavy_vehicles": "60 km/h"
+            }
+          }
+        }
+      },
+      "eleventh_amendment_2022": {
+        "title": "CMVR Eleventh Amendment, 2022",
+        "effective_date": "2022-04-01",
+        "key_changes": {
+          "electronic_systems": {
+            "mandatory_fitment": [
+              "GPS tracking system",
+              "Emergency panic button",
+              "Driver fatigue detection",
+              "Overspeed warning system"
+            ],
+            "compliance_deadline": "2023-04-01"
+          },
+          "driver_licensing": {
+            "mandatory_training_hours": {
+              "light_vehicles": "30 hours",
+              "heavy_vehicles": "60 hours",
+              "transport_vehicles": "80 hours"
+            },
+            "medical_fitness": {
+              "validity_period": "3 years",
+              "mandatory_tests": ["vision", "hearing", "coordination"]
+            }
+          },
+          "vehicle_safety": {
+            "mandatory_equipment": [
+              "First aid kit",
+              "Fire extinguisher",
+              "Reflective triangles",
+              "High visibility jacket"
+            ]
+          }
+        }
+      }
+    },
+    "ais_140_compliance": {
+      "standard_overview": {
+        "title": "Automotive Industry Standard 140",
+        "purpose": "Intelligent Transportation Systems - Public Transport Information System and Management",
+        "mandatory_for": [
+          "All commercial vehicles >3.5 tons",
+          "All passenger vehicles >9 seats",
+          "All school buses",
+          "All goods vehicles carrying hazardous materials"
+        ]
+      },
+      "technical_requirements": {
+        "gps_tracking": {
+          "accuracy": "±3 meters",
+          "update_frequency": "10 seconds",
+          "data_storage": "30 days minimum",
+          "communication": "GSM/GPRS/3G/4G"
+        },
+        "panic_button": {
+          "location": "Driver accessible position",
+          "response_time": "<5 seconds",
+          "alert_recipients": ["Police", "Vehicle owner", "Control center"],
+          "tamper_proof": true
+        },
+        "vehicle_tracking_terminal": {
+          "power_supply": "12V/24V DC",
+          "backup_battery": "4 hours minimum",
+          "operating_temperature": "-20°C to +70°C",
+          "ip_rating": "IP65"
+        },
+        "emergency_features": {
+          "sos_functionality": true,
+          "overspeed_alerts": true,
+          "route_deviation_alerts": true,
+          "geofencing": true
+        }
+      },
+      "compliance_checklist": {
+        "device_certification": "Must be BIS certified",
+        "installation": "Authorized service centers only",
+        "data_protocol": "AIS-140 standard format",
+        "server_location": "India based servers only"
+      }
+    },
+    "rtsp_compliance": {
+      "full_name": "Road Transport Safety Policy",
+      "governing_body": "Ministry of Road Transport and Highways",
+      "driving_hours": {
+        "maximum_continuous": "4.5 hours",
+        "daily_maximum": "10 hours",
+        "weekly_maximum": "56 hours",
+        "mandatory_rest": {
+          "after_4_5_hours": "45 minutes minimum",
+          "daily_rest": "11 hours continuous",
+          "weekly_rest": "45 hours"
+        }
+      },
+      "night_driving_restrictions": {
+        "definition": "22:00 to 06:00 hours",
+        "restrictions": {
+          "school_buses": "Completely prohibited",
+          "passenger_vehicles": "Restricted on certain routes",
+          "goods_vehicles": "Permitted with additional safety measures"
+        },
+        "safety_requirements": {
+          "driver_alertness": "Mandatory fatigue monitoring",
+          "vehicle_lighting": "Enhanced lighting systems",
+          "speed_limits": "Reduced by 10 km/h from daytime limits"
+        }
+      },
+      "route_specific": {
+        "mountain_roads": {
+          "additional_rest": "Every 2 hours",
+          "speed_reduction": "20 km/h below normal limits",
+          "convoy_travel": "Recommended for heavy vehicles"
+        },
+        "high_density_traffic": {
+          "peak_hour_restrictions": "07:00-10:00 and 17:00-20:00",
+          "alternate_routes": "Mandatory for heavy vehicles",
+          "pilot_vehicle": "Required for oversize loads"
+        }
+      }
+    },
+    "state_specific_permits": {
+      "delhi": {
+        "entry_restrictions": {
+          "diesel_vehicles": "BS-VI only",
+          "heavy_vehicles": "Night entry only (22:00-06:00)",
+          "pollution_certificate": "Valid PUC mandatory"
+        },
+        "permits_required": [
+          "Entry permit for goods vehicles",
+          "Route permit for passenger vehicles",
+          "Temporary permit for special occasions"
+        ]
+      },
+      "maharashtra": {
+        "toll_requirements": {
+          "fastag_mandatory": true,
+          "overweight_penalties": "₹1000 per ton excess"
+        },
+        "route_restrictions": {
+          "ghat_sections": "Speed limit 30 km/h",
+          "wildlife_areas": "No night travel 20:00-06:00"
+        }
+      },
+      "karnataka": {
+        "environmental_compliance": {
+          "forest_areas": "No idling allowed",
+          "emission_standards": "BS-VI compliance",
+          "noise_pollution": "Horn restrictions in cities"
+        }
+      },
+      "tamil_nadu": {
+        "permit_requirements": {
+          "inter_state": "Temporary permit mandatory",
+          "validity": "30 days maximum",
+          "fees": "Based on vehicle category and distance"
+        }
+      }
+    },
+    "route_specific_compliance": {
+      "highway_classifications": {
+        "national_highways": {
+          "authority": "National Highway Authority of India (NHAI)",
+          "speed_limits": {
+            "cars": "100 km/h",
+            "trucks": "80 km/h",
+            "buses": "90 km/h"
+          },
+          "mandatory_equipment": [
+            "Reflective tape on vehicles",
+            "Speed governors",
+            "GPS tracking"
+          ]
+        },
+        "state_highways": {
+          "authority": "State PWD",
+          "permit_requirements": "State transport authority",
+          "toll_applicability": "State specific"
+        },
+        "district_roads": {
+          "weight_restrictions": "Based on bridge capacity",
+          "local_permits": "District collector approval",
+          "environmental_clearance": "For sensitive areas"
+        }
+      },
+      "special_zones": {
+        "coastal_regulation_zone": {
+          "authority": "Ministry of Environment and Forests",
+          "restrictions": [
+            "No construction within 500m of high tide line",
+            "Restricted vehicle movement",
+            "Environmental impact assessment required"
+          ]
+        },
+        "wildlife_sanctuaries": {
+          "timing_restrictions": "06:00-18:00 only",
+          "speed_limits": "Maximum 40 km/h",
+          "noise_restrictions": "No horn zones"
+        },
+        "archaeological_sites": {
+          "heritage_zones": "ASI approval required",
+          "vehicle_restrictions": "Limited access",
+          "parking_regulations": "Designated areas only"
+        }
+      }
+    },
+    "compliance_assessment": {
+      "risk_levels": {
+        "high_risk": {
+          "criteria": [
+            "Heavy goods vehicles >12 tons",
+            "Passenger vehicles >30 seats",
+            "Hazardous material transport",
+            "Inter-state operations"
+          ],
+          "mandatory_compliance": [
+            "AIS-140 device",
+            "Valid permits for all states",
+            "Driver training certification",
+            "Vehicle fitness certificate"
+          ]
+        },
+        "medium_risk": {
+          "criteria": [
+            "Medium goods vehicles 3.5-12 tons",
+            "Passenger vehicles 9-30 seats",
+            "Intra-state operations"
+          ],
+          "required_compliance": [
+            "GPS tracking",
+            "State permits",
+            "PUC certificate",
+            "Insurance validity"
+          ]
+        },
+        "low_risk": {
+          "criteria": [
+            "Light vehicles <3.5 tons",
+            "Private vehicles",
+            "Local operations"
+          ],
+          "basic_compliance": [
+            "Valid driving license",
+            "Vehicle registration",
+            "Insurance certificate",
+            "PUC certificate"
+          ]
+        }
+      }
+    }
+  }
+}

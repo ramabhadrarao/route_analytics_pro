@@ -454,13 +454,9 @@ class EnhancedRoutePDF(FPDF):
         current_y = self.get_y()
         remaining_space = 280 - current_y  # Total page height minus margins
         
-        # If not enough space, create optimized layout
-        if remaining_space < 120:
-            # Compact layout - single map
-            self.add_compact_turn_map(lat, lng, api_key, 'roadmap')
-        else:
-            # Full layout - street view and satellite map side by side
-            self.add_dual_turn_maps(lat, lng, api_key)
+        # ALWAYS try dual layout first - street view is priority
+        print(f"🗺️ Adding turn maps section for turn {turn_number}")
+        self.add_dual_turn_maps(lat, lng, api_key)
     
     def add_dual_turn_maps(self, lat, lng, api_key):
         """Add street view and satellite map side by side - ENHANCED DEBUGGING"""
@@ -544,115 +540,142 @@ class EnhancedRoutePDF(FPDF):
             self.cell(0, 6, f'Map generation failed for turn at {lat:.4f}, {lng:.4f}', 0, 1, 'L')
     
     def add_street_view_image(self, lat, lng, api_key, x_pos=10, y_pos=None, width=85, height=60):
-        """Add Google Street View image - ENHANCED WITH MULTIPLE ANGLES"""
+        """Add Google Street View image - FIXED TO ALWAYS SHOW STREET VIEW"""
         try:
             if y_pos is None:
                 y_pos = self.get_y()
             
             print(f"🔍 Generating Street View for {lat:.6f}, {lng:.6f}")
             
-            # Try multiple headings to get the best street view
-            headings = [0, 90, 180, 270]  # North, East, South, West
+            # Try multiple headings to get street view, with fallback to nearby location
+            attempts = [
+                (lat, lng, 0),    # Original location, north
+                (lat, lng, 90),   # Original location, east  
+                (lat, lng, 180),  # Original location, south
+                (lat, lng, 270),  # Original location, west
+                (lat + 0.0001, lng, 0),     # Slightly north
+                (lat - 0.0001, lng, 0),     # Slightly south
+                (lat, lng + 0.0001, 0),     # Slightly east
+                (lat, lng - 0.0001, 0),     # Slightly west
+            ]
             
-            for attempt, heading in enumerate(headings):
+            for attempt_num, (try_lat, try_lng, heading) in enumerate(attempts):
                 try:
                     # Street View API with enhanced parameters
                     base_url = "https://maps.googleapis.com/maps/api/streetview"
                     params = [
                         f"size=640x640",  # Square high resolution
-                        f"location={lat},{lng}",
+                        f"location={try_lat},{try_lng}",
                         f"heading={heading}",
-                        f"pitch=10",      # Slightly upward view
-                        f"fov=100",       # Wide field of view
-                        f"return_error_code=true",  # Get error codes
+                        f"pitch=5",       # Slightly upward view
+                        f"fov=90",        # Normal field of view
+                        f"return_error_code=true",
                         f"key={api_key}"
                     ]
                     
                     url = f"{base_url}?" + "&".join(params)
-                    print(f"  📡 Attempting Street View API call {attempt+1}/4 (heading: {heading}°)")
+                    print(f"  📡 Street View attempt {attempt_num+1}/8: {try_lat:.6f},{try_lng:.6f} heading:{heading}°")
                     
-                    response = requests.get(url, timeout=20)
+                    response = requests.get(url, timeout=25)
                     
                     if response.status_code == 200:
-                        # Check if response contains actual image (not error image)
                         content_length = len(response.content)
                         print(f"  📊 Response size: {content_length} bytes")
                         
-                        if content_length > 5000:  # Valid street view images are typically larger
+                        # Check for valid street view (Google returns small error images ~1-2KB for unavailable locations)
+                        if content_length > 3000:  # Real street view images are much larger
                             with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp:
                                 temp.write(response.content)
                                 temp_path = temp.name
                             
-                            # Verify it's a valid image by trying to load it
                             try:
-                                # Add border
-                                self.set_draw_color(100, 150, 100)  # Green border for street view
-                                self.set_line_width(1)
+                                # Add green border for street view
+                                self.set_draw_color(34, 139, 34)  # Forest green
+                                self.set_line_width(1.5)
                                 self.rect(x_pos - 1, y_pos - 1, width + 2, height + 2, 'D')
                                 
                                 # Add image
                                 self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
                                 
-                                print(f"  ✅ Street View image added successfully (heading: {heading}°)")
+                                print(f"  ✅ Street View SUCCESS! (attempt {attempt_num+1}, heading: {heading}°)")
                                 
-                                # Add small text label
-                                self.set_font('Arial', '', 7)
-                                self.set_text_color(0, 100, 0)
+                                # Add success label
+                                self.set_font('Arial', 'B', 8)
+                                self.set_text_color(34, 139, 34)
                                 self.set_xy(x_pos, y_pos + height + 1)
-                                self.cell(width, 4, f'Street View - {heading}° heading', 0, 0, 'C')
+                                self.cell(width, 4, f'Street View - {heading}° view', 0, 0, 'C')
                                 
                                 os.unlink(temp_path)
                                 return True
                                 
                             except Exception as img_error:
-                                print(f"  ❌ Invalid image format: {img_error}")
-                                os.unlink(temp_path)
+                                print(f"  ❌ Image processing failed: {img_error}")
+                                try:
+                                    os.unlink(temp_path)
+                                except:
+                                    pass
                                 continue
                         else:
-                            print(f"  ⚠️ Response too small ({content_length} bytes) - likely no street view available")
+                            print(f"  ⚠️ Response too small ({content_length} bytes) - no street view at this location")
                     else:
-                        print(f"  ❌ HTTP {response.status_code}: {response.text[:100]}")
+                        print(f"  ❌ HTTP {response.status_code}")
              
                 except requests.RequestException as req_error:
-                    print(f"  ❌ Request failed for heading {heading}°: {req_error}")
+                    print(f"  ❌ Request failed: {req_error}")
+                    continue
+                except Exception as e:
+                    print(f"  ❌ Attempt {attempt_num+1} failed: {e}")
                     continue
             
-            # If all attempts failed, add placeholder
-            print(f"  ⚠️ No street view available - adding placeholder")
+            # All attempts failed - add informative placeholder
+            print(f"  🚫 No Street View available after {len(attempts)} attempts")
             self.add_street_view_placeholder(x_pos, y_pos, width, height, lat, lng)
             return False
             
         except Exception as e:
-            print(f"❌ Street view error: {e}")
+            print(f"❌ Street view critical error: {e}")
             self.add_street_view_placeholder(x_pos, y_pos, width, height, lat, lng)
             return False
     
     def add_street_view_placeholder(self, x_pos, y_pos, width, height, lat, lng):
-        """Add placeholder when street view is not available"""
+        """Add enhanced placeholder when street view is not available"""
         try:
-            # Draw placeholder rectangle
-            self.set_draw_color(200, 200, 200)
-            self.set_fill_color(245, 245, 245)
+            # Draw placeholder rectangle with street view styling
+            self.set_draw_color(220, 20, 60)  # Crimson red border
+            self.set_fill_color(255, 240, 245)  # Light pink background
+            self.set_line_width(2)
             self.rect(x_pos, y_pos, width, height, 'DF')
             
-            # Add placeholder text
-            self.set_font('Arial', 'B', 10)
-            self.set_text_color(100, 100, 100)
+            # Add "NO STREET VIEW" header
+            self.set_font('Arial', 'B', 11)
+            self.set_text_color(220, 20, 60)
+            self.set_xy(x_pos, y_pos + height/2 - 25)
+            self.cell(width, 8, 'STREET VIEW', 0, 0, 'C')
+            
             self.set_xy(x_pos, y_pos + height/2 - 15)
-            self.cell(width, 6, 'STREET VIEW', 0, 0, 'C')
+            self.cell(width, 8, 'NOT AVAILABLE', 0, 0, 'C')
             
+            # Add coordinates
+            self.set_font('Arial', '', 9)
+            self.set_text_color(100, 100, 100)
+            self.set_xy(x_pos, y_pos + height/2 - 2)
+            self.cell(width, 6, f'GPS: {lat:.6f}, {lng:.6f}', 0, 0, 'C')
+            
+            # Add helpful message
             self.set_font('Arial', '', 8)
-            self.set_xy(x_pos, y_pos + height/2 - 5)
-            self.cell(width, 5, 'NOT AVAILABLE', 0, 0, 'C')
+            self.set_xy(x_pos, y_pos + height/2 + 8)
+            self.cell(width, 5, 'Street imagery not available', 0, 0, 'C')
             
-            self.set_xy(x_pos, y_pos + height/2 + 5)
-            self.cell(width, 5, f'{lat:.4f}, {lng:.4f}', 0, 0, 'C')
+            self.set_xy(x_pos, y_pos + height/2 + 16)
+            self.cell(width, 5, 'for this exact location.', 0, 0, 'C')
             
-            self.set_xy(x_pos, y_pos + height/2 + 15)
-            self.cell(width, 5, 'Use satellite map for reference', 0, 0, 'C')
+            self.set_xy(x_pos, y_pos + height/2 + 24)
+            self.cell(width, 5, 'Refer to satellite map.', 0, 0, 'C')
+            
+            print(f"  📋 Street View placeholder added for {lat:.4f}, {lng:.4f}")
             
         except Exception as e:
-            print(f"Error adding placeholder: {e}")
+            print(f"Error adding street view placeholder: {e}")
     
     def add_satellite_map_image(self, lat, lng, api_key, x_pos=105, y_pos=None, width=85, height=60):
         """Add satellite map image - ENHANCED WITH DEBUGGING"""
