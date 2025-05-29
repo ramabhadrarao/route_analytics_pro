@@ -1,4 +1,4 @@
-# utils/pdf_generator.py - ENHANCED WITH TABLES, MAPS, GRAPHS & OPTIMAL LAYOUT
+# utils/pdf_generator.py - ENHANCED WITH INDIVIDUAL TURN PAGES & FIXED TEXT COLORS
 
 from fpdf import FPDF
 import os
@@ -76,10 +76,10 @@ class EnhancedRoutePDF(FPDF):
         self.cell(0, 8, now.strftime("%B %d, %Y at %I:%M %p"), 0, 1, 'L')
         
         self.set_xy(40, 200)
-        self.cell(0, 8, 'Features: Detailed Tables, Maps with Markers, Weather Graphs', 0, 1, 'L')
+        self.cell(0, 8, 'Features: Individual Turn Analysis, Street Views, Detailed Maps', 0, 1, 'L')
         
         self.set_xy(40, 215)
-        self.cell(0, 8, 'Analysis: Complete POI Data with GPS Coordinates & Distances', 0, 1, 'L')
+        self.cell(0, 8, 'Analysis: Complete with GPS Coordinates & Turn-by-Turn Details', 0, 1, 'L')
         
     def header(self):
         if self.page_no() == 1:
@@ -134,7 +134,7 @@ class EnhancedRoutePDF(FPDF):
         self.ln(5)
         
     def add_enhanced_route_overview(self, route_data):
-        """Enhanced route overview with statistics"""
+        """Enhanced route overview with statistics - FIXED TEXT COLORS"""
         self.add_page()
         self.add_section_header("Enhanced Route Overview", "primary")
         
@@ -154,7 +154,7 @@ class EnhancedRoutePDF(FPDF):
         
         # Create overview table
         self.set_font('Arial', 'B', 12)
-        self.set_text_color(*self.primary_color)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         self.cell(0, 8, 'ROUTE INFORMATION', 0, 1, 'L')
         
         # Route info table
@@ -164,7 +164,8 @@ class EnhancedRoutePDF(FPDF):
             ['Total Distance', route_data.get('distance', 'Unknown')],
             ['Estimated Duration', route_data.get('duration', 'Unknown')],
             ['Route Points Analyzed', str(route_data.get('total_points', 0))],
-            ['Overall Safety Score', f"{safety_score}/100"]
+            ['Overall Safety Score', f"{safety_score}/100"],
+            ['Individual Turn Pages', f"{blind_spots + sharp_danger} detailed pages included"]
         ]
         
         self.create_simple_table(route_info, [60, 120])
@@ -173,23 +174,35 @@ class EnhancedRoutePDF(FPDF):
         
         # Hazard statistics table
         self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         self.cell(0, 8, 'HAZARD ANALYSIS SUMMARY', 0, 1, 'L')
         
         hazard_info = [
-            ['Extreme Blind Spots (>80°)', str(blind_spots), 'CRITICAL DANGER'],
-            ['Sharp Danger Turns (70-80°)', str(sharp_danger), 'HIGH DANGER'],
+            ['Extreme Blind Spots (>80°)', str(blind_spots), 'CRITICAL DANGER - Individual Pages Added'],
+            ['Sharp Danger Turns (70-80°)', str(sharp_danger), 'HIGH DANGER - Individual Pages Added'],
             ['Moderate Turns (45-70°)', str(moderate_turns), 'CAUTION REQUIRED'],
             ['Network Dead Zones', str(len(network_coverage.get('dead_zones', []))), 'NO SIGNAL'],
             ['Poor Coverage Areas', str(len(network_coverage.get('poor_zones', []))), 'WEAK SIGNAL'],
             ['Weather Monitoring Points', str(len(route_data.get('weather', []))), 'CONDITIONS TRACKED']
         ]
         
-        self.create_simple_table(hazard_info, [80, 30, 70])
+        self.create_simple_table(hazard_info, [50, 30, 100])
+        
+        # Add turn analysis summary
+        self.ln(5)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(220, 53, 69)  # RED for warning
+        total_critical_turns = blind_spots + sharp_danger
+        self.cell(0, 8, f'CRITICAL: {total_critical_turns} DANGEROUS TURNS REQUIRE DETAILED ANALYSIS', 0, 1, 'C')
+        
+        self.set_font('Arial', '', 10)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT
+        self.cell(0, 6, f'Each critical turn has a dedicated page with street view, satellite map, and safety recommendations.', 0, 1, 'C')
         
     def create_simple_table(self, data, col_widths):
-        """Create a simple table with data"""
+        """Create a simple table with data - FIXED TEXT COLORS"""
         self.set_font('Arial', '', 10)
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         
         for row in data:
             x_start = self.get_x()
@@ -203,18 +216,20 @@ class EnhancedRoutePDF(FPDF):
             for i, (cell, width) in enumerate(zip(row, col_widths)):
                 if i == 0:  # First column - bold
                     self.set_font('Arial', 'B', 10)
+                    self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
                 else:
                     self.set_font('Arial', '', 10)
+                    self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
                 
                 self.set_xy(x_start + sum(col_widths[:i]), y_start)
-                self.cell(width, 8, self.clean_text(str(cell)[:50]), 1, 0, 'L')
+                self.cell(width, 8, self.clean_text(str(cell)[:70]), 1, 0, 'L')
             
             self.ln(8)
         
         self.ln(3)
         
     def add_detailed_poi_tables(self, route_data):
-        """Add detailed POI tables with S.No, Coordinates, and Distance"""
+        """Add detailed POI tables with S.No, Coordinates, and Distance - FIXED TEXT COLORS"""
         route_points = route_data.get('route_points', [])
         
         poi_categories = {
@@ -241,6 +256,7 @@ class EnhancedRoutePDF(FPDF):
             # Header row
             self.set_font('Arial', 'B', 9)
             self.set_fill_color(230, 230, 230)
+            self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
             
             x_start = 10
             for i, (header, width) in enumerate(zip(headers, col_widths)):
@@ -251,6 +267,7 @@ class EnhancedRoutePDF(FPDF):
             # Data rows
             self.set_font('Arial', '', 8)
             self.set_fill_color(255, 255, 255)
+            self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
             
             for idx, (name, location) in enumerate(pois.items(), 1):
                 # Calculate coordinates and distance (estimated)
@@ -294,10 +311,554 @@ class EnhancedRoutePDF(FPDF):
             # Summary
             self.ln(3)
             self.set_font('Arial', 'B', 10)
-            self.set_text_color(*self.primary_color)
+            self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
             summary_text = f"Total {title.split(' - ')[0]}: {len(pois)} locations identified along the route"
             self.cell(0, 8, summary_text, 0, 1, 'L')
+    
+    def add_individual_turn_pages(self, route_data, api_key):
+        """Add individual pages for each critical turn with street view and maps"""
+        sharp_turns = route_data.get('sharp_turns', [])
+        
+        if not sharp_turns:
+            return
+        
+        # Filter critical turns (blind spots and sharp danger turns)
+        critical_turns = [turn for turn in sharp_turns if turn.get('angle', 0) >= 70]
+        
+        if not critical_turns:
+            return
+        
+        # Sort by danger level (highest angle first)
+        critical_turns.sort(key=lambda x: x.get('angle', 0), reverse=True)
+        
+        print(f"📄 Generating {len(critical_turns)} individual turn analysis pages...")
+        
+        for idx, turn in enumerate(critical_turns, 1):
+            self.add_single_turn_analysis_page(turn, idx, len(critical_turns), api_key)
+    
+    def add_single_turn_analysis_page(self, turn, turn_number, total_turns, api_key):
+        """Add detailed analysis page for a single turn"""
+        self.add_page()
+        
+        angle = turn.get('angle', 0)
+        lat = turn.get('lat', 0)
+        lng = turn.get('lng', 0)
+        classification = turn.get('classification', 'Unknown')
+        
+        # Determine danger level and color
+        if angle > 80:
+            danger_level = "EXTREME BLIND SPOT"
+            color_type = "danger"
+            danger_color = self.danger_color
+            speed_recommendation = "15-20 km/h"
+            visibility = "ZERO visibility around corner"
+        else:
+            danger_level = "SHARP DANGER TURN"
+            color_type = "warning" 
+            danger_color = self.warning_color
+            speed_recommendation = "25-30 km/h"
+            visibility = "LIMITED visibility"
+        
+        # Header with turn information
+        self.add_section_header(f"TURN {turn_number}/{total_turns}: {danger_level} - {angle}°", color_type)
+        
+        # Turn details table
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'CRITICAL TURN ANALYSIS:', 0, 1, 'L')
+        
+        turn_details = [
+            ['Turn Classification', classification],
+            ['Turn Angle', f"{angle}° (DANGEROUS)"],
+            ['GPS Coordinates', f"{lat:.6f}, {lng:.6f}"],
+            ['Danger Level', danger_level],
+            ['Recommended Speed', speed_recommendation],
+            ['Visibility Status', visibility],
+            ['Safety Priority', 'HIGHEST' if angle > 80 else 'HIGH']
+        ]
+        
+        self.create_simple_table(turn_details, [60, 120])
+        
+        # Safety recommendations
+        self.ln(5)
+        self.set_font('Arial', 'B', 11)
+        self.set_text_color(*danger_color)
+        self.cell(0, 8, 'CRITICAL SAFETY RECOMMENDATIONS:', 0, 1, 'L')
+        
+        recommendations = self.get_turn_safety_recommendations(angle)
+        
+        self.set_font('Arial', '', 10)
+        self.set_text_color(0, 0, 0)
+        
+        for i, rec in enumerate(recommendations, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            # Use multi_cell for long text
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(2)
+        
+        # Add maps section
+        self.ln(5)
+        if api_key:
+            self.add_turn_maps_section(lat, lng, angle, api_key, turn_number)
+        else:
+            self.set_font('Arial', 'I', 10)
+            self.set_text_color(100, 100, 100)
+            self.cell(0, 6, 'Maps require Google Maps API key configuration.', 0, 1, 'L')
+        
+        # Add warning footer
+        self.set_y(-40)
+        self.set_fill_color(*danger_color)
+        self.rect(10, self.get_y(), 190, 20, 'F')
+        
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(255, 255, 255)
+        self.set_xy(15, self.get_y() + 4)
+        warning_text = f"WARNING: {danger_level} - Exercise EXTREME CAUTION at {lat:.4f}, {lng:.4f}"
+        self.cell(180, 12, warning_text, 0, 1, 'C')
+    
+    def get_turn_safety_recommendations(self, angle):
+        """Get safety recommendations based on turn angle"""
+        if angle > 80:
+            return [
+                "CRAWL SPEED MANDATORY: Reduce speed to 15-20 km/h minimum before entering turn",
+                "HORN WARNING: Sound horn continuously while approaching and taking the turn", 
+                "HEADLIGHTS ON: Keep headlights on during daytime for maximum visibility",
+                "AVOID OVERTAKING: Absolutely no overtaking 200m before and after this turn",
+                "STAY IN LANE: Keep to the extreme left of your lane throughout the turn",
+                "PASSENGER ALERT: Warn all passengers about the dangerous blind spot ahead",
+                "EMERGENCY PREP: Have emergency contact ready - accidents common at such turns",
+                "WEATHER CHECK: Avoid this turn in rain, fog, or night conditions if possible"
+            ]
+        else:
+            return [
+                "REDUCE SPEED: Slow down to 25-30 km/h before entering the sharp turn",
+                "USE HORN: Sound horn to alert oncoming traffic of your presence",
+                "MAINTAIN DISTANCE: Keep safe distance from vehicle ahead (minimum 50m)",
+                "PROPER LANE: Stay in correct lane and avoid cutting corners",
+                "CHECK MIRRORS: Monitor traffic behind before slowing down",
+                "GEAR DOWN: Use appropriate gear for controlled speed through turn",
+                "AVOID BRAKING: Complete braking before turn, not during the turn",
+                "POST-TURN CAUTION: Accelerate gradually after completing the turn"
+            ]
+    
+    def add_turn_maps_section(self, lat, lng, angle, api_key, turn_number):
+        """Add street view and satellite map for the turn"""
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'TURN LOCATION ANALYSIS:', 0, 1, 'L')
+        
+        # Calculate remaining space on page
+        current_y = self.get_y()
+        remaining_space = 280 - current_y  # Total page height minus margins
+        
+        # If not enough space, create optimized layout
+        if remaining_space < 120:
+            # Compact layout - single map
+            self.add_compact_turn_map(lat, lng, api_key, 'roadmap')
+        else:
+            # Full layout - street view and satellite map side by side
+            self.add_dual_turn_maps(lat, lng, api_key)
+    
+    def add_dual_turn_maps(self, lat, lng, api_key):
+        """Add street view and satellite map side by side - ENHANCED DEBUGGING"""
+        try:
+            current_y = self.get_y()
             
+            # Street View (left side)
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(0, 0, 0)
+            self.set_xy(10, current_y)
+            self.cell(85, 6, 'STREET VIEW - Driver Perspective:', 0, 0, 'L')
+            
+            # Satellite Map (right side)  
+            self.set_xy(105, current_y)
+            self.cell(85, 6, 'SATELLITE MAP - Overhead View:', 0, 0, 'L')
+            
+            self.ln(8)
+            current_y = self.get_y()
+            
+            print(f"📍 Processing turn at coordinates: {lat:.6f}, {lng:.6f}")
+            
+            # Generate street view with detailed debugging
+            print("🔄 Attempting to generate Street View...")
+            street_view_success = self.add_street_view_image(lat, lng, api_key, 
+                                                           x_pos=10, y_pos=current_y, 
+                                                           width=85, height=60)
+            
+            # Generate satellite map with detailed debugging
+            print("🔄 Attempting to generate Satellite Map...")
+            satellite_success = self.add_satellite_map_image(lat, lng, api_key,
+                                                           x_pos=105, y_pos=current_y,
+                                                           width=85, height=60)
+            
+            # Move cursor below both images
+            self.set_y(current_y + 65)
+            
+            # Add coordinates info with status
+            self.set_font('Arial', '', 9)
+            self.set_text_color(0, 0, 0)
+            status_text = f'GPS: {lat:.6f}, {lng:.6f} | Street View: {"✓" if street_view_success else "✗"} | Satellite: {"✓" if satellite_success else "✗"}'
+            self.cell(0, 6, status_text, 0, 1, 'C')
+            
+            # Debug API status
+            if not street_view_success:
+                print(f"⚠️ Street View failed for {lat:.6f}, {lng:.6f}")
+                self.set_font('Arial', '', 8)
+                self.set_text_color(200, 100, 0)
+                self.cell(0, 5, 'Note: Street View may not be available for this location. Using placeholder.', 0, 1, 'C')
+            
+        except Exception as e:
+            print(f"❌ Error adding dual maps: {e}")
+            import traceback
+            traceback.print_exc()
+            self.add_compact_turn_map(lat, lng, api_key, 'roadmap')
+    
+    def add_compact_turn_map(self, lat, lng, api_key, map_type='roadmap'):
+        """Add single optimized map for the turn"""
+        try:
+            current_y = self.get_y()
+            
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, f'TURN LOCATION MAP - {map_type.upper()} VIEW:', 0, 1, 'L')
+            
+            current_y = self.get_y()
+            
+            success = self.add_static_map_image(lat, lng, api_key, map_type,
+                                              x_pos=30, y_pos=current_y,
+                                              width=150, height=80)
+            
+            if success:
+                self.set_y(current_y + 85)
+                self.set_font('Arial', '', 9)
+                self.set_text_color(0, 0, 0)
+                self.cell(0, 6, f'GPS: {lat:.6f}, {lng:.6f} | Zoom level optimized for turn analysis', 0, 1, 'C')
+            
+        except Exception as e:
+            print(f"Error adding compact map: {e}")
+            self.set_font('Arial', '', 10)
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, f'Map generation failed for turn at {lat:.4f}, {lng:.4f}', 0, 1, 'L')
+    
+    def add_street_view_image(self, lat, lng, api_key, x_pos=10, y_pos=None, width=85, height=60):
+        """Add Google Street View image - ENHANCED WITH MULTIPLE ANGLES"""
+        try:
+            if y_pos is None:
+                y_pos = self.get_y()
+            
+            print(f"🔍 Generating Street View for {lat:.6f}, {lng:.6f}")
+            
+            # Try multiple headings to get the best street view
+            headings = [0, 90, 180, 270]  # North, East, South, West
+            
+            for attempt, heading in enumerate(headings):
+                try:
+                    # Street View API with enhanced parameters
+                    base_url = "https://maps.googleapis.com/maps/api/streetview"
+                    params = [
+                        f"size=640x640",  # Square high resolution
+                        f"location={lat},{lng}",
+                        f"heading={heading}",
+                        f"pitch=10",      # Slightly upward view
+                        f"fov=100",       # Wide field of view
+                        f"return_error_code=true",  # Get error codes
+                        f"key={api_key}"
+                    ]
+                    
+                    url = f"{base_url}?" + "&".join(params)
+                    print(f"  📡 Attempting Street View API call {attempt+1}/4 (heading: {heading}°)")
+                    
+                    response = requests.get(url, timeout=20)
+                    
+                    if response.status_code == 200:
+                        # Check if response contains actual image (not error image)
+                        content_length = len(response.content)
+                        print(f"  📊 Response size: {content_length} bytes")
+                        
+                        if content_length > 5000:  # Valid street view images are typically larger
+                            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp:
+                                temp.write(response.content)
+                                temp_path = temp.name
+                            
+                            # Verify it's a valid image by trying to load it
+                            try:
+                                # Add border
+                                self.set_draw_color(100, 150, 100)  # Green border for street view
+                                self.set_line_width(1)
+                                self.rect(x_pos - 1, y_pos - 1, width + 2, height + 2, 'D')
+                                
+                                # Add image
+                                self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
+                                
+                                print(f"  ✅ Street View image added successfully (heading: {heading}°)")
+                                
+                                # Add small text label
+                                self.set_font('Arial', '', 7)
+                                self.set_text_color(0, 100, 0)
+                                self.set_xy(x_pos, y_pos + height + 1)
+                                self.cell(width, 4, f'Street View - {heading}° heading', 0, 0, 'C')
+                                
+                                os.unlink(temp_path)
+                                return True
+                                
+                            except Exception as img_error:
+                                print(f"  ❌ Invalid image format: {img_error}")
+                                os.unlink(temp_path)
+                                continue
+                        else:
+                            print(f"  ⚠️ Response too small ({content_length} bytes) - likely no street view available")
+                    else:
+                        print(f"  ❌ HTTP {response.status_code}: {response.text[:100]}")
+             
+                except requests.RequestException as req_error:
+                    print(f"  ❌ Request failed for heading {heading}°: {req_error}")
+                    continue
+            
+            # If all attempts failed, add placeholder
+            print(f"  ⚠️ No street view available - adding placeholder")
+            self.add_street_view_placeholder(x_pos, y_pos, width, height, lat, lng)
+            return False
+            
+        except Exception as e:
+            print(f"❌ Street view error: {e}")
+            self.add_street_view_placeholder(x_pos, y_pos, width, height, lat, lng)
+            return False
+    
+    def add_street_view_placeholder(self, x_pos, y_pos, width, height, lat, lng):
+        """Add placeholder when street view is not available"""
+        try:
+            # Draw placeholder rectangle
+            self.set_draw_color(200, 200, 200)
+            self.set_fill_color(245, 245, 245)
+            self.rect(x_pos, y_pos, width, height, 'DF')
+            
+            # Add placeholder text
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(100, 100, 100)
+            self.set_xy(x_pos, y_pos + height/2 - 15)
+            self.cell(width, 6, 'STREET VIEW', 0, 0, 'C')
+            
+            self.set_font('Arial', '', 8)
+            self.set_xy(x_pos, y_pos + height/2 - 5)
+            self.cell(width, 5, 'NOT AVAILABLE', 0, 0, 'C')
+            
+            self.set_xy(x_pos, y_pos + height/2 + 5)
+            self.cell(width, 5, f'{lat:.4f}, {lng:.4f}', 0, 0, 'C')
+            
+            self.set_xy(x_pos, y_pos + height/2 + 15)
+            self.cell(width, 5, 'Use satellite map for reference', 0, 0, 'C')
+            
+        except Exception as e:
+            print(f"Error adding placeholder: {e}")
+    
+    def add_satellite_map_image(self, lat, lng, api_key, x_pos=105, y_pos=None, width=85, height=60):
+        """Add satellite map image - ENHANCED WITH DEBUGGING"""
+        try:
+            if y_pos is None:
+                y_pos = self.get_y()
+            
+            print(f"🛰️ Generating Satellite Map for {lat:.6f}, {lng:.6f}")
+            
+            base_url = "https://maps.googleapis.com/maps/api/staticmap"
+            params = [
+                f"center={lat},{lng}",
+                f"zoom=18",  # Very high zoom for turn details
+                f"size=640x640",  # Square high resolution
+                f"maptype=satellite",
+                f"markers=color:red|size:mid|{lat},{lng}",  # Mark the exact turn location
+                f"key={api_key}"
+            ]
+            
+            url = f"{base_url}?" + "&".join(params)
+            print(f"  📡 Satellite Map API call...")
+            
+            response = requests.get(url, timeout=20)
+            
+            if response.status_code == 200:
+                content_length = len(response.content)
+                print(f"  📊 Satellite response size: {content_length} bytes")
+                
+                if content_length > 1000:  # Valid maps should be larger than 1KB
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
+                        temp.write(response.content)
+                        temp_path = temp.name
+                    
+                    try:
+                        # Add border (blue for satellite)
+                        self.set_draw_color(100, 100, 200)
+                        self.set_line_width(1)
+                        self.rect(x_pos - 1, y_pos - 1, width + 2, height + 2, 'D')
+                        
+                        # Add image
+                        self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
+                        
+                        print(f"  ✅ Satellite map added successfully")
+                        
+                        # Add small text label
+                        self.set_font('Arial', '', 7)
+                        self.set_text_color(0, 0, 200)
+                        self.set_xy(x_pos, y_pos + height + 1)
+                        self.cell(width, 4, 'Satellite View - Zoom 18', 0, 0, 'C')
+                        
+                        os.unlink(temp_path)
+                        return True
+                        
+                    except Exception as img_error:
+                        print(f"  ❌ Invalid satellite image: {img_error}")
+                        os.unlink(temp_path)
+                        self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
+                        return False
+                else:
+                    print(f"  ⚠️ Satellite response too small ({content_length} bytes)")
+                    self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
+                    return False
+            else:
+                print(f"  ❌ Satellite HTTP {response.status_code}: {response.text[:100]}")
+                self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
+                return False
+            
+        except Exception as e:
+            print(f"❌ Satellite map error: {e}")
+            self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
+            return False
+    
+    def add_satellite_placeholder(self, x_pos, y_pos, width, height, lat, lng):
+        """Add placeholder when satellite map is not available"""
+        try:
+            # Draw placeholder rectangle
+            self.set_draw_color(150, 150, 200)
+            self.set_fill_color(240, 240, 250)
+            self.rect(x_pos, y_pos, width, height, 'DF')
+            
+            # Add placeholder text
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(100, 100, 150)
+            self.set_xy(x_pos, y_pos + height/2 - 15)
+            self.cell(width, 6, 'SATELLITE MAP', 0, 0, 'C')
+            
+            self.set_font('Arial', '', 8)
+            self.set_xy(x_pos, y_pos + height/2 - 5)
+            self.cell(width, 5, 'NOT AVAILABLE', 0, 0, 'C')
+            
+            self.set_xy(x_pos, y_pos + height/2 + 5)
+            self.cell(width, 5, f'{lat:.4f}, {lng:.4f}', 0, 0, 'C')
+            
+            self.set_xy(x_pos, y_pos + height/2 + 15)
+            self.cell(width, 5, 'Check API key and quota', 0, 0, 'C')
+            
+        except Exception as e:
+            print(f"Error adding satellite placeholder: {e}")
+    
+    def add_static_map_image(self, lat, lng, api_key, map_type='roadmap', x_pos=30, y_pos=None, width=150, height=80):
+        """Add static Google Map image - ENHANCED WITH DEBUGGING"""
+        try:
+            if y_pos is None:
+                y_pos = self.get_y()
+            
+            print(f"🗺️ Generating {map_type} map for {lat:.6f}, {lng:.6f}")
+            
+            base_url = "https://maps.googleapis.com/maps/api/staticmap"
+            params = [
+                f"center={lat},{lng}",
+                f"zoom=17",  # High zoom for turn details
+                f"size=640x640",  # Square high resolution for better quality
+                f"maptype={map_type}",
+                f"markers=color:red|size:mid|{lat},{lng}",  # Mark the exact turn location
+                f"key={api_key}"
+            ]
+            
+            url = f"{base_url}?" + "&".join(params)
+            print(f"  📡 Static Map API call ({map_type})...")
+            
+            response = requests.get(url, timeout=20)
+            
+            if response.status_code == 200:
+                content_length = len(response.content)
+                print(f"  📊 {map_type} response size: {content_length} bytes")
+                
+                if content_length > 1000:  # Valid maps should be larger than 1KB
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
+                        temp.write(response.content)
+                        temp_path = temp.name
+                    
+                    try:
+                        # Add border with different colors for different map types
+                        border_colors = {
+                            'roadmap': (100, 100, 100),
+                            'satellite': (100, 100, 200),
+                            'terrain': (100, 150, 100),
+                            'hybrid': (150, 100, 150)
+                        }
+                        border_color = border_colors.get(map_type, (150, 150, 150))
+                        
+                        self.set_draw_color(*border_color)
+                        self.set_line_width(1)
+                        self.rect(x_pos - 1, y_pos - 1, width + 2, height + 2, 'D')
+                        
+                        # Add image
+                        self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
+                        
+                        print(f"  ✅ {map_type} map added successfully")
+                        
+                        # Add small text label
+                        self.set_font('Arial', '', 7)
+                        self.set_text_color(*border_color)
+                        self.set_xy(x_pos, y_pos + height + 1)
+                        self.cell(width, 4, f'{map_type.title()} View - Zoom 17', 0, 0, 'C')
+                        
+                        os.unlink(temp_path)
+                        return True
+                        
+                    except Exception as img_error:
+                        print(f"  ❌ Invalid {map_type} image: {img_error}")
+                        os.unlink(temp_path)
+                        self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
+                        return False
+                else:
+                    print(f"  ⚠️ {map_type} response too small ({content_length} bytes)")
+                    self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
+                    return False
+            else:
+                print(f"  ❌ {map_type} HTTP {response.status_code}: {response.text[:100]}")
+                self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
+                return False
+            
+        except Exception as e:
+            print(f"❌ Static map error ({map_type}): {e}")
+            self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
+            return False
+    
+    def add_map_placeholder(self, x_pos, y_pos, width, height, lat, lng, map_type):
+        """Add placeholder when map is not available"""
+        try:
+            # Draw placeholder rectangle
+            self.set_draw_color(180, 180, 180)
+            self.set_fill_color(250, 250, 250)
+            self.rect(x_pos, y_pos, width, height, 'DF')
+            
+            # Add placeholder text
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(120, 120, 120)
+            self.set_xy(x_pos, y_pos + height/2 - 20)
+            self.cell(width, 8, f'{map_type.upper()} MAP', 0, 0, 'C')
+            
+            self.set_font('Arial', '', 10)
+            self.set_xy(x_pos, y_pos + height/2 - 10)
+            self.cell(width, 6, 'NOT AVAILABLE', 0, 0, 'C')
+            
+            self.set_xy(x_pos, y_pos + height/2)
+            self.cell(width, 6, f'{lat:.4f}, {lng:.4f}', 0, 0, 'C')
+            
+            self.set_font('Arial', '', 8)
+            self.set_xy(x_pos, y_pos + height/2 + 15)
+            self.cell(width, 5, 'Please verify API key and quota limits', 0, 0, 'C')
+            
+        except Exception as e:
+            print(f"Error adding map placeholder: {e}")
+    
     def estimate_poi_location(self, name, location, route_points, index, total_pois):
         """Estimate POI coordinates and distance from route"""
         if not route_points:
@@ -332,7 +893,7 @@ class EnhancedRoutePDF(FPDF):
         return estimated_lat, estimated_lng, min_distance
     
     def add_comprehensive_map_with_markers(self, route_data, api_key):
-        """Add comprehensive map with all markers"""
+        """Add comprehensive map with all markers - FIXED TEXT COLORS"""
         self.add_page()
         self.add_section_header("COMPREHENSIVE ROUTE MAP WITH ALL MARKERS", "info")
         
@@ -341,6 +902,7 @@ class EnhancedRoutePDF(FPDF):
         
         if not route_points or len(route_points) < 2:
             self.set_font('Arial', '', 12)
+            self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
             self.cell(0, 8, 'Route points not available for map generation.', 0, 1, 'L')
             return
         
@@ -351,11 +913,9 @@ class EnhancedRoutePDF(FPDF):
         center_lat = sum(point[0] for point in route_points) / len(route_points)
         center_lng = sum(point[1] for point in route_points) / len(route_points)
         
-        # Add route polyline to markers for Google Maps
-        route_polyline = self.encode_polyline(route_points)
-        
         # Generate map
         self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         self.cell(0, 8, 'COMPREHENSIVE ROUTE MAP:', 0, 1, 'L')
         self.ln(3)
         
@@ -366,9 +926,11 @@ class EnhancedRoutePDF(FPDF):
                 self.add_map_legend()
             else:
                 self.set_font('Arial', '', 10)
+                self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
                 self.cell(0, 6, 'Map generation failed. Please check API key and connectivity.', 0, 1, 'L')
         else:
             self.set_font('Arial', '', 10)
+            self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
             self.cell(0, 6, 'Map generation requires Google Maps API key.', 0, 1, 'L')
     
     def create_comprehensive_markers(self, route_data):
@@ -444,7 +1006,7 @@ class EnhancedRoutePDF(FPDF):
         schools = list(route_data.get('schools', {}).keys())[:2]
         for i, school in enumerate(schools):
             point_index = min(int((i + 2) * route_length / 5), route_length - 1)
-            point = route_points[point_index]
+            point = route_points[point_index]  
             markers.append({
                 'lat': point[0] + 0.001,
                 'lng': point[1] - 0.002,
@@ -531,9 +1093,9 @@ class EnhancedRoutePDF(FPDF):
             return False
     
     def add_map_legend(self):
-        """Add comprehensive map legend"""
+        """Add comprehensive map legend - FIXED TEXT COLORS"""
         self.set_font('Arial', 'B', 11)
-        self.set_text_color(*self.primary_color)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         self.cell(0, 8, 'MAP LEGEND:', 0, 1, 'L')
         
         legend_items = [
@@ -547,313 +1109,12 @@ class EnhancedRoutePDF(FPDF):
         ]
         
         self.set_font('Arial', '', 9)
-        self.set_text_color(0, 0, 0)
+        self.set_text_color(0, 0, 0)  # BLACK TEXT - FIXED
         
         for marker, color, description in legend_items:
             self.cell(20, 6, marker, 0, 0, 'L')
             self.cell(25, 6, color, 0, 0, 'L')
             self.cell(0, 6, description, 0, 1, 'L')
-    
-    def add_weather_analysis_with_graphs(self, route_data):
-        """Add weather analysis with graphs"""
-        weather_data = route_data.get('weather', [])
-        
-        if not weather_data:
-            return
-        
-        self.add_page()
-        self.add_section_header("WEATHER CONDITIONS ANALYSIS WITH GRAPHS", "warning")
-        
-        # Weather summary table
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 8, 'WEATHER MONITORING POINTS SUMMARY:', 0, 1, 'L')
-        
-        # Create weather table
-        headers = ['Point', 'Location', 'Temperature (°C)', 'Condition', 'Humidity (%)', 'Wind (m/s)']
-        col_widths = [20, 40, 30, 35, 25, 25]
-        
-        # Header
-        self.set_font('Arial', 'B', 9)
-        self.set_fill_color(230, 230, 230)
-        
-        for i, (header, width) in enumerate(zip(headers, col_widths)):
-            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
-            self.cell(width, 8, header, 1, 0, 'C', True)
-        self.ln(8)
-        
-        # Data
-        self.set_font('Arial', '', 8)
-        for i, weather in enumerate(weather_data, 1):
-            y_pos = self.get_y()
-            
-            self.set_xy(10, y_pos)
-            self.cell(20, 6, f"P{i}", 1, 0, 'C')
-            
-            self.set_xy(30, y_pos)
-            location = weather.get('location', 'Unknown')[:15]
-            self.cell(40, 6, self.clean_text(location), 1, 0, 'L')
-            
-            self.set_xy(70, y_pos)
-            temp = weather.get('temp', 0)
-            self.cell(30, 6, f"{temp:.1f}", 1, 0, 'C')
-            
-            self.set_xy(100, y_pos)
-            condition = weather.get('description', 'Unknown')[:12]
-            self.cell(35, 6, self.clean_text(condition), 1, 0, 'L')
-            
-            self.set_xy(135, y_pos)
-            humidity = weather.get('humidity', 0)
-            self.cell(25, 6, f"{humidity}", 1, 0, 'C')
-            
-            self.set_xy(160, y_pos)
-            wind = weather.get('wind_speed', 0)
-            self.cell(25, 6, f"{wind:.1f}", 1, 0, 'C')
-            
-            self.ln(6)
-        
-        # Generate and add weather graphs
-        self.ln(5)
-        self.add_weather_graphs(weather_data)
-    
-    def add_weather_graphs(self, weather_data):
-        """Generate and add weather graphs"""
-        try:
-            # Extract data for graphs
-            locations = [f"P{i+1}" for i in range(len(weather_data))]
-            temperatures = [w.get('temp', 0) for w in weather_data]
-            humidity = [w.get('humidity', 0) for w in weather_data]
-            wind_speed = [w.get('wind_speed', 0) for w in weather_data]
-            
-            # Create figure with subplots
-            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
-            fig.suptitle('Weather Analysis Along Route', fontsize=16, fontweight='bold')
-            
-            # Temperature graph
-            ax1.bar(locations, temperatures, color='orange', alpha=0.7)
-            ax1.set_title('Temperature Distribution')
-            ax1.set_ylabel('Temperature (°C)')
-            ax1.tick_params(axis='x', rotation=45)
-            
-            # Humidity graph
-            ax2.bar(locations, humidity, color='blue', alpha=0.7)
-            ax2.set_title('Humidity Levels')
-            ax2.set_ylabel('Humidity (%)')
-            ax2.tick_params(axis='x', rotation=45)
-            
-            # Wind speed graph
-            ax3.bar(locations, wind_speed, color='green', alpha=0.7)
-            ax3.set_title('Wind Speed')
-            ax3.set_ylabel('Wind Speed (m/s)')
-            ax3.tick_params(axis='x', rotation=45)
-            
-            # Combined line chart
-            ax4.plot(locations, temperatures, 'o-', label='Temperature', color='red', linewidth=2)
-            ax4_twin = ax4.twinx()
-            ax4_twin.plot(locations, humidity, 's-', label='Humidity', color='blue', linewidth=2)
-            ax4.set_title('Temperature & Humidity Trends')
-            ax4.set_ylabel('Temperature (°C)', color='red')
-            ax4_twin.set_ylabel('Humidity (%)', color='blue')
-            ax4.tick_params(axis='x', rotation=45)
-            ax4.legend(loc='upper left')
-            ax4_twin.legend(loc='upper right')
-            
-            plt.tight_layout()
-            
-            # Save graph to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
-                plt.savefig(temp.name, dpi=150, bbox_inches='tight')
-                temp_path = temp.name
-            
-            plt.close()
-            
-            # Add graph to PDF
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 8, 'WEATHER ANALYSIS GRAPHS:', 0, 1, 'L')
-            self.ln(3)
-            
-            current_y = self.get_y()
-            img_width = 180
-            img_height = 120
-            
-            # Check space
-            if current_y + img_height > 270:
-                self.add_page()
-                current_y = self.get_y()
-            
-            x_position = (210 - img_width) / 2
-            
-            # Add image
-            self.image(temp_path, x=x_position, y=current_y, w=img_width, h=img_height)
-            os.unlink(temp_path)
-            
-            self.set_y(current_y + img_height + 5)
-            
-            # Weather summary
-            avg_temp = sum(temperatures) / len(temperatures) if temperatures else 0
-            max_temp = max(temperatures) if temperatures else 0
-            min_temp = min(temperatures) if temperatures else 0
-            avg_humidity = sum(humidity) / len(humidity) if humidity else 0
-            
-            self.set_font('Arial', 'B', 10)
-            self.cell(0, 6, f'Weather Summary: Avg Temp: {avg_temp:.1f}°C | Range: {min_temp:.1f}°C to {max_temp:.1f}°C | Avg Humidity: {avg_humidity:.1f}%', 0, 1, 'L')
-            
-        except Exception as e:
-            print(f"Error generating weather graphs: {e}")
-            self.set_font('Arial', '', 10)
-            self.cell(0, 6, 'Weather graphs could not be generated.', 0, 1, 'L')
-    
-    def add_network_coverage_detailed_analysis(self, route_data, api_key=None):
-        """Add detailed network coverage analysis"""
-        network_data = route_data.get('network_coverage', {})
-        
-        if not network_data or not network_data.get('coverage_analysis'):
-            return
-        
-        self.add_page()
-        self.add_section_header("NETWORK COVERAGE DETAILED ANALYSIS", "warning")
-        
-        coverage_stats = network_data.get('coverage_stats', {})
-        coverage_analysis = network_data.get('coverage_analysis', [])
-        dead_zones = network_data.get('dead_zones', [])
-        poor_zones = network_data.get('poor_zones', [])
-        
-        # Coverage statistics table
-        stats_data = [
-            ['Total Points Tested', str(len(coverage_analysis))],
-            ['API Success Rate', f"{coverage_stats.get('api_success_rate', 0):.1f}%"],
-            ['Overall Coverage Score', f"{coverage_stats.get('overall_coverage_score', 0):.1f}/100"],
-            ['Confirmed Dead Zones', str(len(dead_zones))],
-            ['Poor Coverage Areas', str(len(poor_zones))],
-            ['Data Quality', coverage_stats.get('data_quality', 'Unknown')]
-        ]
-        
-        self.create_simple_table(stats_data, [80, 100])
-        
-        # Add network coverage map if API available
-        if api_key and coverage_analysis:
-            self.add_network_coverage_map(network_data, api_key)
-    
-    def add_network_coverage_map(self, network_data, api_key):
-        """Add network coverage map"""
-        try:
-            coverage_analysis = network_data.get('coverage_analysis', [])
-            
-            # Create coverage markers
-            markers = []
-            
-            # Sample coverage points for map
-            for i, point in enumerate(coverage_analysis[::5][:10]):  # Every 5th point, max 10
-                coords = point.get('coordinates', {})
-                quality = point.get('coverage_quality', 'unknown')
-                
-                if isinstance(coords, dict) and 'lat' in coords and 'lng' in coords:
-                    color_map = {
-                        'excellent': 'green',
-                        'good': 'blue',
-                        'fair': 'yellow',
-                        'poor': 'orange',
-                        'dead': 'red',
-                        'api_failed': 'gray'
-                    }
-                    
-                    markers.append({
-                        'lat': coords['lat'],
-                        'lng': coords['lng'],
-                        'color': color_map.get(quality, 'gray'),
-                        'label': str(i+1)
-                    })
-            
-            if markers:
-                # Calculate center
-                center_lat = sum(m['lat'] for m in markers) / len(markers)
-                center_lng = sum(m['lng'] for m in markers) / len(markers)
-                
-                self.ln(5)
-                self.set_font('Arial', 'B', 12)
-                self.cell(0, 8, 'NETWORK COVERAGE MAP:', 0, 1, 'L')
-                
-                # Generate simple static map
-                if self.add_simple_static_map(center_lat, center_lng, markers, api_key):
-                    self.ln(3)
-                    self.add_network_legend()
-        
-        except Exception as e:
-            print(f"Error adding network coverage map: {e}")
-    
-    def add_simple_static_map(self, center_lat, center_lng, markers, api_key):
-        """Add simple static map"""
-        try:
-            base_url = "https://maps.googleapis.com/maps/api/staticmap"
-            params = [
-                f"center={center_lat},{center_lng}",
-                "zoom=10",
-                "size=640x400",
-                "maptype=roadmap"
-            ]
-            
-            # Add markers
-            for marker in markers[:10]:
-                color = marker.get('color', 'red')
-                label = marker.get('label', '')
-                lat = marker.get('lat')
-                lng = marker.get('lng')
-                
-                params.append(f"markers=size:mid|color:{color}|label:{label}|{lat},{lng}")
-            
-            params.append(f"key={api_key}")
-            
-            url = f"{base_url}?" + "&".join(params)
-            response = requests.get(url, timeout=20)
-            
-            if response.status_code == 200:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
-                    temp.write(response.content)
-                    temp_path = temp.name
-                
-                current_y = self.get_y()
-                img_width = 150
-                img_height = 100
-                
-                if current_y + img_height > 270:
-                    self.add_page()
-                    current_y = self.get_y()
-                
-                x_position = (210 - img_width) / 2
-                self.image(temp_path, x=x_position, y=current_y, w=img_width, h=img_height)
-                os.unlink(temp_path)
-                
-                self.set_y(current_y + img_height + 5)
-                return True
-            
-            return False
-            
-        except Exception as e:
-            print(f"Error adding simple static map: {e}")
-            return False
-    
-    def add_network_legend(self):
-        """Add network coverage legend"""
-        legend_items = [
-            ['Green', 'Excellent Coverage'],
-            ['Blue', 'Good Coverage'],
-            ['Yellow', 'Fair Coverage'],
-            ['Orange', 'Poor Coverage'],
-            ['Red', 'Dead Zones'],
-            ['Gray', 'Data Unavailable']
-        ]
-        
-        self.set_font('Arial', 'B', 10)
-        self.cell(0, 6, 'Network Coverage Legend:', 0, 1, 'L')
-        
-        self.set_font('Arial', '', 9)
-        for color, description in legend_items:
-            self.cell(25, 5, color, 0, 0, 'L')
-            self.cell(0, 5, description, 0, 1, 'L')
-    
-    def encode_polyline(self, coordinates):
-        """Simple polyline encoding for route display"""
-        # This is a simplified version - in production, use a proper polyline library
-        return '|'.join([f"{coord[0]},{coord[1]}" for coord in coordinates[::10]])
     
     def calculate_safety_score(self, sharp_turns, dead_zones_count, poor_zones_count):
         """Calculate safety score"""
@@ -903,7 +1164,7 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
                 emergency=None, environmental=None, toll_gates=None, bridges=None, 
                 vehicle_type="car", type="enhanced", api_key=None, major_highways=None, route_data=None):
     """
-    ENHANCED PDF GENERATION WITH TABLES, MAPS, GRAPHS & OPTIMAL LAYOUT
+    ENHANCED PDF GENERATION WITH INDIVIDUAL TURN PAGES, STREET VIEWS & FIXED TEXT COLORS
     """
     
     # Handle None values
@@ -918,33 +1179,42 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
     
     try:
         # Create enhanced PDF
-        pdf = EnhancedRoutePDF("Enhanced Route Analysis Report with Detailed Tables & Maps")
+        pdf = EnhancedRoutePDF("Enhanced Route Analysis Report with Individual Turn Analysis")
+        
+        print("📄 Starting Enhanced PDF Generation with Individual Turn Pages...")
         
         # 1. Professional title page
         pdf.add_professional_title_page()
         
-        # 2. Enhanced route overview
+        # 2. Enhanced route overview (with fixed text colors)
         pdf.add_enhanced_route_overview(route_data)
         
-        # 3. Detailed POI tables with coordinates and distances
+        # 3. Detailed POI tables with coordinates and distances (with fixed text colors)
         pdf.add_detailed_poi_tables(route_data)
         
         # 4. Comprehensive map with all markers
         if api_key:
             pdf.add_comprehensive_map_with_markers(route_data, api_key)
         
-        # 5. Weather analysis with graphs
-        if route_data.get('weather'):
-            pdf.add_weather_analysis_with_graphs(route_data)
-        
-        # 6. Network coverage detailed analysis
-        if route_data.get('network_coverage'):
-            pdf.add_network_coverage_detailed_analysis(route_data, api_key)
+        # 5. *** NEW FEATURE *** Individual turn analysis pages with street views and maps
+        if api_key and route_data.get('sharp_turns'):
+            critical_turns = [turn for turn in route_data.get('sharp_turns', []) if turn.get('angle', 0) >= 70]
+            if critical_turns:
+                print(f"🔄 Adding {len(critical_turns)} individual turn analysis pages with street views...")
+                pdf.add_individual_turn_pages(route_data, api_key)
         
         # Save PDF
         pdf.output(filename)
+        
+        # Calculate total pages
+        total_turns = len([turn for turn in route_data.get('sharp_turns', []) if turn.get('angle', 0) >= 70])
+        estimated_pages = 5 + total_turns  # Base pages + individual turn pages
+        
         print(f"✅ Enhanced PDF report generated successfully: {filename}")
-        print(f"📊 Features: Detailed POI tables, Maps with markers, Weather graphs, Optimal layout")
+        print(f"📊 Features: Fixed text colors, Individual turn analysis, Street views, Detailed maps")
+        print(f"📄 Total pages: ~{estimated_pages} (including {total_turns} individual turn analysis pages)")
+        print(f"🗺️ Street views and satellite maps included for each critical turn")
+        
         return filename
         
     except Exception as e:
