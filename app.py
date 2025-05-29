@@ -31,17 +31,21 @@ load_dotenv()
 try:
     from utils.pdf_generator import generate_pdf
     from utils.network_coverage import NetworkCoverageAnalyzer
+    from utils.regulatory_compliance import RegulatoryComplianceAnalyzer  # NEW IMPORT
+
     print("✅ Enhanced PDF generator and network coverage analyzer imported successfully")
 except ImportError as e:
     print(f"⚠️ Warning: Could not import utils modules: {e}")
-    print("📋 Please ensure utils/pdf_generator.py and utils/network_coverage.py are created")
+    print(" Please ensure utils/pdf_generator.py and utils/network_coverage.py are created")
+    print(" Please ensure utils/regulatory_compliance.py is created")
+
     # Try to import simple fallback
-    try:
-        from utils.pdf_generator_simple import generate_pdf
-        print("✅ Fallback simple PDF generator imported")
-    except ImportError:
-        print("❌ No PDF generator available")
-        generate_pdf = None
+    # try:
+    #     from utils.pdf_generator_simple import generate_pdf
+    #     print("✅ Fallback simple PDF generator imported")
+    # except ImportError:
+    #     print("❌ No PDF generator available")
+    #     generate_pdf = None
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -733,10 +737,80 @@ def upload_csv():
     except Exception as e:
         logger.error(f"Upload error: {e}")
         return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
-
+# Add this new route for compliance checking (ADD THIS FUNCTION TO app.py)
+@app.route('/compliance-check', methods=['POST'])
+def check_compliance():
+    """Check regulatory compliance for route and vehicle"""
+    if 'logged_in' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    try:
+        # Get route data
+        session_id = get_session_id()
+        route_data = session_manager.get_route_data(session_id)
+        
+        if not route_data:
+            return jsonify({'error': 'No route data available. Please analyze a route first.'}), 400
+        
+        # Get vehicle type from request
+        vehicle_type = request.json.get('vehicle_type', 'heavy_goods_vehicle')
+        
+        # Initialize compliance analyzer
+        compliance_analyzer = RegulatoryComplianceAnalyzer()
+        
+        # Define vehicle info based on type
+        vehicle_profiles = {
+            "heavy_goods_vehicle": {
+                "type": "heavy_goods_vehicle",
+                "weight": 18000,
+                "passenger_capacity": 2,
+                "vehicle_category": "Heavy Goods Vehicle",
+                "fuel_type": "Diesel"
+            },
+            "medium_goods_vehicle": {
+                "type": "medium_goods_vehicle",
+                "weight": 8000,
+                "passenger_capacity": 2,
+                "vehicle_category": "Medium Goods Vehicle", 
+                "fuel_type": "Diesel"
+            },
+            "light_vehicle": {
+                "type": "light_motor_vehicle",
+                "weight": 2500,
+                "passenger_capacity": 5,
+                "vehicle_category": "Light Motor Vehicle",
+                "fuel_type": "Petrol"
+            },
+            "bus": {
+                "type": "passenger_vehicle",
+                "weight": 12000,
+                "passenger_capacity": 45,
+                "vehicle_category": "Passenger Vehicle",
+                "fuel_type": "Diesel"
+            }
+        }
+        
+        vehicle_info = vehicle_profiles.get(vehicle_type, vehicle_profiles["heavy_goods_vehicle"])
+        
+        # Analyze compliance
+        compliance_data = compliance_analyzer.analyze_route_compliance(route_data, vehicle_info)
+        
+        return jsonify({
+            'status': 'success',
+            'compliance_data': compliance_data,
+            'message': f'Compliance analysis completed for {vehicle_type}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Compliance check error: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': f'Compliance check failed: {str(e)}'
+        }), 500
+    
 @app.route('/generate-pdf')
 def generate_pdf_report():
-    """Generate enhanced PDF report with comprehensive analysis"""
+    """Generate enhanced PDF report with comprehensive analysis including regulatory compliance"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     
@@ -752,15 +826,18 @@ def generate_pdf_report():
         return redirect(url_for('dashboard'))
     
     try:
+        # Get vehicle type from request parameter (default to heavy goods)
+        vehicle_type = request.args.get('vehicle_type', 'heavy_goods_vehicle')
+        
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_filename = f"enhanced_route_analysis_report_{timestamp}.pdf"
+        pdf_filename = f"enhanced_route_analysis_report_{timestamp}.pdf" 
         pdf_path = os.path.join('reports', pdf_filename)
         
         # Create reports directory
         os.makedirs('reports', exist_ok=True)
         
-        # Generate enhanced PDF with comprehensive analysis
-        logger.info(f"Generating enhanced PDF report: {pdf_filename}")
+        # Generate enhanced PDF with regulatory compliance
+        logger.info(f"Generating enhanced PDF report with regulatory compliance: {pdf_filename}")
         
         result = generate_pdf(
             filename=pdf_path,
@@ -778,15 +855,15 @@ def generate_pdf_report():
             weather=route_data.get('weather', []),
             risk_segments=route_data.get('risk_segments', []),
             major_highways=route_data.get('major_highways', []),
-            vehicle_type='car',
+            vehicle_type=vehicle_type,  # PASS VEHICLE TYPE
             type='enhanced_comprehensive',
             api_key=GOOGLE_MAPS_API_KEY,
-            route_data=route_data  # Pass complete route data
+            route_data=route_data
         )
         
         if result:
-            logger.info(f"Enhanced PDF report generated successfully: {pdf_filename}")
-            flash('Enhanced PDF report generated successfully with detailed tables, maps, and weather graphs!', 'success')
+            logger.info(f"Enhanced PDF report with regulatory compliance generated successfully: {pdf_filename}")
+            flash('Enhanced PDF report generated successfully with regulatory compliance analysis!', 'success')
             return send_file(pdf_path, as_attachment=True, download_name=pdf_filename)
         else:
             flash('Failed to generate enhanced PDF report', 'error')
@@ -799,7 +876,7 @@ def generate_pdf_report():
 
 @app.route('/route-details')
 def route_details():
-    """Enhanced route details with comprehensive analysis"""
+    """Enhanced route details with comprehensive analysis including compliance preview"""
     if 'logged_in' not in session:
         return redirect(url_for('login'))
     
@@ -828,6 +905,37 @@ def route_details():
         'total_critical_alerts': len([t for t in sharp_turns if t.get('angle', 0) > 80]) + len(network_coverage.get('dead_zones', [])),
         'network_reliability': 'HIGH' if network_coverage.get('coverage_stats', {}).get('overall_coverage_score', 0) > 80 else 'MEDIUM' if network_coverage.get('coverage_stats', {}).get('overall_coverage_score', 0) > 60 else 'LOW'
     }
+    
+    # ADD COMPLIANCE PREVIEW - Quick compliance check
+    try:
+        from utils.regulatory_compliance import RegulatoryComplianceAnalyzer
+        compliance_analyzer = RegulatoryComplianceAnalyzer()
+        
+        # Quick compliance check for heavy vehicle (default)
+        vehicle_info = {
+            "type": "heavy_goods_vehicle",
+            "weight": 18000,
+            "passenger_capacity": 2,
+            "vehicle_category": "Heavy Goods Vehicle",
+            "fuel_type": "Diesel"
+        }
+        
+        compliance_preview = compliance_analyzer.analyze_route_compliance(route_data, vehicle_info)
+        enhanced_route_data['compliance_preview'] = {
+            'score': compliance_preview.get('compliance_score', 0),
+            'category': compliance_preview.get('route_summary', {}).get('compliance_category', 'Unknown'),
+            'ais_140_required': compliance_preview.get('ais_140_compliance', {}).get('mandatory', False),
+            'permit_required': len(compliance_preview.get('state_permits', {}).get('states_crossed', [])) > 1
+        }
+        
+    except Exception as e:
+        logger.warning(f"Compliance preview failed: {e}")
+        enhanced_route_data['compliance_preview'] = {
+            'score': 0,
+            'category': 'Analysis Required',
+            'ais_140_required': True,  # Assume required for safety
+            'permit_required': True
+        }
     
     return render_template('route_details.html', 
                          route_data=enhanced_route_data, 
@@ -918,6 +1026,35 @@ def analysis_status():
             'status': 'error',
             'error': f'Failed to check analysis status: {str(e)}'
         }), 500
+def get_compliance_summary_for_vehicle(route_data, vehicle_type):
+    """Get compliance summary for specific vehicle type"""
+    try:
+        from utils.regulatory_compliance import RegulatoryComplianceAnalyzer
+        
+        compliance_analyzer = RegulatoryComplianceAnalyzer()
+        
+        vehicle_profiles = {
+            "heavy_goods_vehicle": {"type": "heavy_goods_vehicle", "weight": 18000, "passenger_capacity": 2},
+            "medium_goods_vehicle": {"type": "medium_goods_vehicle", "weight": 8000, "passenger_capacity": 2},
+            "light_vehicle": {"type": "light_motor_vehicle", "weight": 2500, "passenger_capacity": 5},
+            "bus": {"type": "passenger_vehicle", "weight": 12000, "passenger_capacity": 45}
+        }
+        
+        vehicle_info = vehicle_profiles.get(vehicle_type, vehicle_profiles["heavy_goods_vehicle"])
+        
+        compliance_data = compliance_analyzer.analyze_route_compliance(route_data, vehicle_info)
+        
+        return {
+            'score': compliance_data.get('compliance_score', 0),
+            'critical_items': len([r for r in compliance_data.get('recommendations', []) if r.startswith('')]),
+            'ais_140_required': compliance_data.get('ais_140_compliance', {}).get('mandatory', False),
+            'permits_required': len(compliance_data.get('state_permits', {}).get('critical_permits', [])),
+            'category': compliance_data.get('route_summary', {}).get('compliance_category', 'Unknown')
+        }
+        
+    except Exception as e:
+        logger.error(f"Compliance summary error: {e}")
+        return {'score': 0, 'critical_items': 5, 'ais_140_required': True, 'permits_required': 3, 'category': 'Error'}
 
 def calculate_route_safety_score(sharp_turns, dead_zones_count, poor_zones_count):
     """Calculate overall route safety score (0-100)"""
@@ -965,6 +1102,13 @@ if __name__ == '__main__':
     print(f"📊 PDF Generator: {'✅ Enhanced Available' if generate_pdf else '❌ Not Available'}")
     print("💾 Session Storage: File-based (Optimized for large data)")
     print("📈 Features: Detailed POI Tables, Maps with Markers, Weather Graphs")
+    print(" Regulatory Compliance integration ready!")
+    print("✅ New features:")
+    print("   • /compliance-check endpoint for AJAX compliance checking")
+    print("   • Enhanced PDF generation with regulatory compliance")
+    print("   • Compliance preview in route details")
+    print("   • Vehicle type selection support")
+    print("   • CMVR, AIS-140, RTSP compliance analysis")
     print("🌐 Application URL: http://localhost:5000")
     print("=" * 70)
     

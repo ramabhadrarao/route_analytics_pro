@@ -160,12 +160,12 @@ class RegulatoryComplianceAnalyzer:
                     }
                 },
                 "compliance_checklist": [
-                    "✓ GPS device installed and functional",
-                    "✓ Panic button accessible to driver",
-                    "✓ Emergency SOS functionality active",
-                    "✓ Overspeed alert system configured",
-                    "✓ Data transmission to India-based servers",
-                    "✓ Device certification from BIS"
+                    "- GPS device installed and functional",
+                    "- Panic button accessible to driver",
+                    "- Emergency SOS functionality active",
+                    "- Overspeed alert system configured",
+                    "- Data transmission to India-based servers",
+                    "- Device certification from BIS"
                 ]
             }
         else:
@@ -280,15 +280,15 @@ class RegulatoryComplianceAnalyzer:
         # CMVR recommendations
         cmvr = compliance_analysis.get('cmvr_compliance', {})
         if cmvr.get('vehicle_classification', {}).get('permit_required', False):
-            recommendations.append("✓ Obtain Heavy Vehicle Permit before journey")
-            recommendations.append("✓ Ensure driver has valid HMV license")
+            recommendations.append("- Obtain Heavy Vehicle Permit before journey")
+            recommendations.append("- Ensure driver has valid HMV license")
         
         # AIS-140 recommendations
         ais_140 = compliance_analysis.get('ais_140_compliance', {})
         if ais_140.get('mandatory', False):
-            recommendations.append("🔴 CRITICAL: Install AIS-140 compliant GPS tracking system")
-            recommendations.append("🔴 CRITICAL: Install panic button accessible to driver")
-            recommendations.append("✓ Verify device certification from BIS")
+            recommendations.append(" CRITICAL: Install AIS-140 compliant GPS tracking system")
+            recommendations.append(" CRITICAL: Install panic button accessible to driver")
+            recommendations.append("- Verify device certification from BIS")
         
         # RTSP recommendations
         rtsp = compliance_analysis.get('rtsp_compliance', {})
@@ -299,17 +299,17 @@ class RegulatoryComplianceAnalyzer:
         # State permits recommendations
         states = compliance_analysis.get('state_permits', {}).get('states_crossed', [])
         if len(states) > 1:
-            recommendations.append("📋 Obtain inter-state permits for all states")
+            recommendations.append(" Obtain inter-state permits for all states")
             for state in states:
-                recommendations.append(f"📋 Check {state}-specific entry requirements")
+                recommendations.append(f" Check {state}-specific entry requirements")
         
         # General recommendations
         recommendations.extend([
-            "✓ Carry all vehicle documents (RC, Insurance, PUC)",
-            "✓ Ensure driver medical fitness certificate is valid",
-            "✓ Check vehicle safety equipment (first aid, fire extinguisher)",
-            "✓ Verify speed governor installation and calibration",
-            "✓ Plan route to avoid restricted time zones"
+            "- Carry all vehicle documents (RC, Insurance, PUC)",
+            "- Ensure driver medical fitness certificate is valid",
+            "- Check vehicle safety equipment (first aid, fire extinguisher)",
+            "- Verify speed governor installation and calibration",
+            "- Plan route to avoid restricted time zones"
         ])
         
         return recommendations
