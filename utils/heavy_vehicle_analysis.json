@@ -1,0 +1,222 @@
+{
+  "heavy_vehicle_analysis": {
+    "analysis_categories": [
+      {
+        "category": "Travel Time Adjustments",
+        "icon": "🕐",
+        "items": [
+          {
+            "check": "Base travel time calculation",
+            "status": "completed",
+            "description": "Standard route duration calculated"
+          },
+          {
+            "check": "Heavy vehicle speed reduction factor",
+            "status": "missing",
+            "description": "10-15% slower on hills, 20% on ghats"
+          },
+          {
+            "check": "Mandatory rest stop time addition", 
+            "status": "missing",
+            "description": "45 min rest every 4.5 hours driving"
+          },
+          {
+            "check": "Loading/unloading time buffer",
+            "status": "missing", 
+            "description": "2-4 hours additional for cargo operations"
+          },
+          {
+            "check": "Traffic congestion impact",
+            "status": "missing",
+            "description": "Heavy vehicles 30-50% slower in traffic"
+          }
+        ]
+      },
+      {
+        "category": "Road Width & Suitability",
+        "icon": "🛣️",
+        "items": [
+          {
+            "check": "Minimum road width requirements",
+            "status": "missing",
+            "description": "Heavy trucks need 7.5m width for safe passing"
+          },
+          {
+            "check": "Bridge weight capacity validation",
+            "status": "missing",
+            "description": "Check bridge load limits vs vehicle weight"
+          },
+          {
+            "check": "Overhead clearance assessment",
+            "status": "missing",
+            "description": "Minimum 4.5m height clearance required"
+          },
+          {
+            "check": "Ghat road gradient analysis",
+            "status": "missing",
+            "description": "Slopes >8% require special precautions"
+          },
+          {
+            "check": "Rural road surface condition",
+            "status": "missing",
+            "description": "Unpaved roads unsuitable for heavy vehicles"
+          }
+        ]
+      },
+      {
+        "category": "Turning Radius Requirements",
+        "icon": "🔄",
+        "items": [
+          {
+            "check": "Sharp turn maneuverability analysis",
+            "status": "partial",
+            "description": "Heavy vehicles need 12-15m turning radius"
+          },
+          {
+            "check": "Roundabout navigation capability",
+            "status": "missing",
+            "description": "Small roundabouts may be impassable"
+          },
+          {
+            "check": "U-turn possibility assessment",
+            "status": "missing",
+            "description": "U-turns require 25-30m width availability"
+          },
+          {
+            "check": "Reversing space availability",
+            "status": "missing",
+            "description": "Dead-end roads need 40m+ reversing space"
+          },
+          {
+            "check": "Junction turning space validation",
+            "status": "missing", 
+            "description": "T-junctions need adequate corner clearance"
+          }
+        ]
+      },
+      {
+        "category": "Load Distribution & Stability",
+        "icon": "⚖️",
+        "items": [
+          {
+            "check": "Axle load distribution analysis",
+            "status": "missing",
+            "description": "Legal axle limits: 10.2T front, 18.5T rear"
+          },
+          {
+            "check": "Center of gravity assessment",
+            "status": "missing",
+            "description": "High CG increases rollover risk on turns"
+          },
+          {
+            "check": "Load securing requirements",
+            "status": "missing",
+            "description": "Cargo must be secured per CMVR standards"
+          },
+          {
+            "check": "Vehicle stability on slopes",
+            "status": "missing",
+            "description": "Gradient limits based on vehicle configuration"
+          }
+        ]
+      },
+      {
+        "category": "Fuel & Range Planning",
+        "icon": "⛽",
+        "items": [
+          {
+            "check": "Heavy vehicle fuel consumption rate",
+            "status": "missing",
+            "description": "3-4 km/L typical for loaded trucks"
+          },
+          {
+            "check": "Fuel station accessibility",
+            "status": "partial",
+            "description": "Check if fuel stations can accommodate large vehicles"
+          },
+          {
+            "check": "Diesel availability confirmation",
+            "status": "missing",
+            "description": "Ensure high-speed diesel availability"
+          },
+          {
+            "check": "Range planning with load factor",
+            "status": "missing",
+            "description": "Loaded vehicles have 20-30% reduced range"
+          }
+        ]
+      },
+      {
+        "category": "Parking & Rest Areas",
+        "icon": "🅿️",
+        "items": [
+          {
+            "check": "Truck parking availability",
+            "status": "missing", 
+            "description": "Designated truck parking areas along route"
+          },
+          {
+            "check": "Overnight parking security",
+            "status": "missing",
+            "description": "Safe overnight parking for valuable cargo"
+          },
+          {
+            "check": "Driver rest facility access",
+            "status": "missing",
+            "description": "Restaurants, toilets accessible to truck drivers"
+          },
+          {
+            "check": "Vehicle servicing availability",
+            "status": "missing",
+            "description": "Heavy vehicle mechanics and spare parts"
+          }
+        ]
+      }
+    ],
+    "recommendations": [
+      {
+        "priority": "CRITICAL",
+        "icon": "🚨",
+        "title": "Immediate Heavy Vehicle Assessment Required",
+        "description": "Current route analysis lacks heavy vehicle specific considerations",
+        "actions": [
+          "Conduct detailed road width measurement along critical sections",
+          "Validate bridge weight capacity certificates",
+          "Plan mandatory rest stops every 4.5 hours",
+          "Add 25-30% buffer time for heavy vehicle travel"
+        ]
+      },
+      {
+        "priority": "HIGH",
+        "icon": "⚠️", 
+        "title": "Infrastructure Compatibility Check",
+        "description": "Verify route infrastructure can support heavy vehicle operations",
+        "actions": [
+          "Check overhead clearances at all bridges/underpasses",
+          "Confirm turning radius at all sharp corners",
+          "Identify suitable truck parking locations",
+          "Plan fuel stops with truck access"
+        ]
+      },
+      {
+        "priority": "MEDIUM",
+        "icon": "📋",
+        "title": "Operational Planning Enhancement",
+        "description": "Optimize route planning for heavy vehicle efficiency",
+        "actions": [
+          "Calculate accurate fuel requirements",
+          "Plan load distribution and securing",
+          "Schedule driver rest periods",
+          "Identify emergency service locations"
+        ]
+      }
+    ],
+    "compliance_notes": [
+      "Heavy vehicles must comply with axle load limits",
+      "Driver must have valid HMV license",
+      "Vehicle must have valid fitness certificate",
+      "Speed governors mandatory for commercial vehicles",
+      "Oversize/overweight loads need special permits"
+    ]
+  }
+}

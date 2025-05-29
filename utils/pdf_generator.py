@@ -54,56 +54,351 @@ class EnhancedRoutePDF(FPDF):
             '🚀': '[ROCKET]', '⚡': '[LIGHTNING]', '🔥': '[FIRE]',
             '💧': '[WATER]', '🌟': '[SHINE]', '💡': '[BULB]',
             '🎁': '[GIFT]', '🎉': '[CELEBRATION]', '🎊': '[CONFETTI]',
+            '🚛': '[TRUCK]', '🏭': '[FACTORY]', '⛽': '[GAS-STATION]',
             
-            # Symbols to text
+            # Symbols to text - FIXED
             '°': ' degrees', '₹': 'Rs.', '€': 'EUR', '$': 'USD',
             '£': 'GBP', '¥': 'YEN', '©': '(c)', '®': '(R)',
             '™': '(TM)', '±': '+/-', '≤': '<=', '≥': '>=',
             '≠': '!=', '≈': '~=', '×': 'x', '÷': '/',
             
-            # Quote marks and dashes
+            # Quote marks and dashes - FIXED
             '"': '"', '"': '"', ''': "'", ''': "'",
             '–': '-', '—': '-', '…': '...',
             
-            # Arrows
+            # Arrows - FIXED
             '→': '->', '←': '<-', '↑': '^', '↓': 'v',
             '↔': '<->', '⇒': '=>', '⇐': '<=', '⇔': '<=>',
             
-            # Mathematical symbols
+            # Mathematical symbols - FIXED
             '∞': 'infinity', '∑': 'sum', '∏': 'product',
             '∫': 'integral', '∂': 'partial', '∆': 'delta',
             '√': 'sqrt', '∝': 'proportional', '∈': 'in',
             '∉': 'not in', '∪': 'union', '∩': 'intersection',
             
-            # Other common Unicode
+            # Other common Unicode - FIXED
             '•': '*', '◦': 'o', '▪': '-', '▫': '-',
             '★': '[STAR]', '☆': '[STAR-OUTLINE]', '♠': '[SPADE]',
             '♣': '[CLUB]', '♥': '[HEART]', '♦': '[DIAMOND]',
             
-            # Fractions
+            # Fractions - FIXED
             '½': '1/2', '⅓': '1/3', '⅔': '2/3', '¼': '1/4',
             '¾': '3/4', '⅕': '1/5', '⅖': '2/5', '⅗': '3/5',
             
-            # Superscripts and subscripts
+            # Superscripts and subscripts - FIXED
             '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5',
             '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁰': '0',
             
-            # Additional safety-related symbols
+            # Additional safety-related symbols - FIXED
             '⚠': '[WARNING]', '☢': '[RADIOACTIVE]', '☣': '[BIOHAZARD]',
-            '⚡': '[HIGH-VOLTAGE]', '🔥': '[FIRE]', '💀': '[DANGER]',
+            '🔥': '[FIRE]', '💀': '[DANGER]',
         }
         
-        # Apply all replacements
+        # Apply replacements ONLY for specific unicode characters
         for old, new in replacements.items():
-            text = text.replace(old, new)
+            if old in text:  # Only replace if the character exists
+                text = text.replace(old, new)
         
-        # Try to encode as latin-1 (PDF standard)
+        # Simple approach - if text can be encoded as latin-1, return as-is
         try:
             text.encode('latin-1')
             return text
         except UnicodeEncodeError:
-            # If still problematic, use aggressive cleaning
-            return text.encode('latin-1', 'ignore').decode('latin-1')
+            # More conservative approach - only remove problematic characters
+            clean_chars = []
+            for char in text:
+                try:
+                    char.encode('latin-1')
+                    clean_chars.append(char)
+                except UnicodeEncodeError:
+                    # Replace individual problematic characters
+                    if ord(char) > 255:
+                        clean_chars.append('[?]')  # Replace with placeholder
+                    else:
+                        clean_chars.append(char)
+            
+            return ''.join(clean_chars)
+        
+    def add_basic_heavy_vehicle_analysis(self, route_data, vehicle_type="heavy_goods_vehicle"):
+        """Add basic heavy vehicle analysis when Google APIs are not available"""
+        
+        self.add_page()
+        self.add_section_header("HEAVY VEHICLE SPECIFIC ANALYSIS - BASIC ASSESSMENT", "warning")
+        self.set_text_color(0, 0, 0)
+        
+        # Basic analysis without APIs
+        distance_km = self.parse_distance_to_km(route_data.get('distance', '0 km'))
+        duration_str = route_data.get('duration', '0 hours')
+        base_hours = self.parse_duration_to_hours(duration_str)
+        sharp_turns = route_data.get('sharp_turns', [])
+        
+        # Basic calculations
+        adjusted_hours = base_hours * 1.3  # 30% increase for heavy vehicle
+        rest_stops = max(0, int(adjusted_hours / 4.5))
+        
+        self.set_font('Arial', '', 10)
+        intro_text = ("This basic analysis provides essential heavy vehicle considerations. "
+                    "Enhanced analysis with Google APIs requires API key configuration.")
+        self.multi_cell(0, 6, self.clean_text(intro_text), 0, 'L')
+        self.ln(5)
+        
+        # 1. Travel Time Analysis
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, '1. ADJUSTED TRAVEL TIME ANALYSIS', 0, 1, 'L')
+        
+        time_data = [
+            ['Base Travel Time', f"{base_hours:.1f} hours"],
+            ['Heavy Vehicle Adjusted', f"{adjusted_hours:.1f} hours"],
+            ['Time Increase', f"{((adjusted_hours - base_hours) / base_hours * 100):.0f}%"],
+            ['Mandatory Rest Stops', f"{rest_stops} stops required"],
+            ['Rest Time Required', f"{rest_stops * 0.75:.1f} hours"],
+            ['Total Realistic Time', f"{adjusted_hours + (rest_stops * 0.75):.1f} hours"]
+        ]
+        
+        self.create_simple_table(time_data, [70, 110])
+        
+        self.set_font('Arial', 'B', 10)
+        self.set_text_color(40, 167, 69)
+        self.cell(8, 6, '', 0, 0, 'C')
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 6, ' Basic travel time adjustment calculated', 0, 1, 'L')
+        self.ln(5)
+        
+        # 2. Road Width Assessment
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, '2. ROAD WIDTH & SUITABILITY ASSESSMENT', 0, 1, 'L')
+        
+        road_data = [
+            ['Minimum Width Required', '7.5 meters for safe operation'],
+            ['Bridge Weight Capacity', 'Manual verification required'],
+            ['Overhead Clearance', '4.2m minimum height needed'],
+            ['Assessment Status', 'Field verification recommended'],
+            ['Route Classification', 'Unknown - Google Roads API needed'],
+            ['Infrastructure Suitability', 'Cannot be determined without APIs']
+        ]
+        
+        self.create_simple_table(road_data, [70, 110])
+        
+        self.set_font('Arial', 'B', 10)
+        self.set_text_color(253, 126, 20)
+        self.cell(8, 6, '', 0, 0, 'C')
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 6, ' Road infrastructure assessment requires Google Roads API', 0, 1, 'L')
+        self.ln(5)
+        
+        # 3. Turning Radius Analysis
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, '3. TURNING RADIUS REQUIREMENTS', 0, 1, 'L')
+        
+        # Basic turning analysis using existing sharp turns data
+        impossible_turns = len([t for t in sharp_turns if t.get('angle', 0) > 90])
+        difficult_turns = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 90])
+        caution_turns = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
+        
+        turning_data = [
+            ['Total Sharp Turns Detected', str(len(sharp_turns))],
+            ['Impossible Turns (>90°)', str(impossible_turns)],
+            ['Very Difficult (70-90°)', str(difficult_turns)],
+            ['Caution Required (45-70°)', str(caution_turns)],
+            ['Heavy Vehicle Turning Radius', '12.5 meters required'],
+            ['Route Navigability', 'PROBLEMATIC' if impossible_turns > 0 else 'MANAGEABLE']
+        ]
+        
+        self.create_simple_table(turning_data, [70, 110])
+        
+        if impossible_turns == 0:
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(253, 126, 20)
+            self.cell(8, 6, '⚠️', 0, 0, 'C')
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, f' Turning analysis based on GPS data - {difficult_turns} difficult turns detected', 0, 1, 'L')
+        else:
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(220, 53, 69)
+            self.cell(8, 6, '', 0, 0, 'C')
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, f' {impossible_turns} impossible turns detected - Alternate route recommended', 0, 1, 'L')
+        
+        self.ln(5)
+        
+        # 4. Fuel & Range Planning
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, '4. FUEL & RANGE PLANNING', 0, 1, 'L')
+        
+        fuel_consumption = 3.5  # km/L for heavy vehicles
+        fuel_needed = distance_km / fuel_consumption if distance_km > 0 else 0
+        fuel_stations_count = len(route_data.get('petrol_bunks', {}))
+        
+        fuel_data = [
+            ['Route Distance', f"{distance_km:.1f} km"],
+            ['Fuel Consumption Rate', f"{fuel_consumption} km/L (loaded)"],
+            ['Fuel Required', f"{fuel_needed:.1f} liters"],
+            ['Fuel Buffer (30%)', f"{fuel_needed * 0.3:.1f} liters"],
+            ['Total Fuel Needed', f"{fuel_needed * 1.3:.1f} liters"],
+            ['Fuel Stations Found', f"{fuel_stations_count} locations"]
+        ]
+        
+        self.create_simple_table(fuel_data, [70, 110])
+        
+        if fuel_stations_count > 0:
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(40, 167, 69)
+            self.cell(8, 6, '', 0, 0, 'C')
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, f' Fuel planning complete - {fuel_stations_count} stations available', 0, 1, 'L')
+        else:
+            self.set_font('Arial', 'B', 10)
+            self.set_text_color(220, 53, 69)
+            self.cell(8, 6, '', 0, 0, 'C')
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 6, ' No fuel stations detected along route', 0, 1, 'L')
+        
+        self.ln(5)
+        
+        # 5. Load Distribution & Parking
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, '5. LOAD DISTRIBUTION & PARKING FACILITIES', 0, 1, 'L')
+        
+        load_data = [
+            ['Legal GVW Limit', '49,000 kg maximum'],
+            ['Front Axle Limit', '10,200 kg maximum'],
+            ['Rear Axle Limit', '18,500 kg maximum'],
+            ['Load Distribution', 'Weighbridge verification required'],
+            ['Truck Parking Areas', 'Manual identification needed'],
+            ['Parking Assessment', 'Google Places API required for analysis']
+        ]
+        
+        self.create_simple_table(load_data, [70, 110])
+        
+        self.set_font('Arial', 'B', 10)
+        self.set_text_color(253, 126, 20)
+        self.cell(8, 6, '', 0, 0, 'C')
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 6, ' Parking facility analysis requires Google Places API', 0, 1, 'L')
+        self.ln(8)
+        
+        # Basic Recommendations
+        self.add_section_header("BASIC HEAVY VEHICLE RECOMMENDATIONS", "info")
+        self.set_text_color(0, 0, 0)
+        
+        basic_recommendations = [
+            "Add 30% buffer time for heavy vehicle travel delays",
+            f"Plan {rest_stops} mandatory rest stops (45 minutes each)",
+            "Verify bridge weight capacity along the route manually",
+            "Check road width at narrow sections before travel",
+            "Confirm fuel availability at stations for heavy vehicles",
+            "Plan alternative routes for impossible turning locations",
+            "Carry emergency contact numbers for route assistance",
+            "Ensure vehicle compliance with axle load limits"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, rec in enumerate(basic_recommendations, 1):
+            self.cell(8, 6, f'{i}.', 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(2)
+        
+        # API Enhancement Note
+        self.ln(5)
+        self.set_fill_color(52, 144, 220)
+        self.rect(10, self.get_y(), 190, 25, 'F')
+        
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(255, 255, 255)
+        self.set_xy(15, self.get_y() + 3)
+        self.cell(180, 8, 'ENHANCED ANALYSIS AVAILABLE', 0, 1, 'C')
+        
+        self.set_font('Arial', '', 10)
+        self.set_xy(15, self.get_y())
+        enhancement_text = ("Configure Google Maps API key to enable: Real road width analysis, "
+                        "Bridge detection, Truck parking facilities, Route-specific recommendations")
+        self.multi_cell(170, 6, self.clean_text(enhancement_text), 0, 'C')
+        
+        self.set_text_color(0, 0, 0)
+        
+        print(" Basic Heavy Vehicle Analysis page added (API enhancement available)")
+
+    def parse_distance_to_km(self, distance_str: str) -> float:
+        """Parse distance string to kilometers"""
+        try:
+            if not distance_str:
+                return 0.0
+            distance_str = distance_str.lower().replace('km', '').replace(',', '').strip()
+            return float(distance_str)
+        except:
+            return 0.0
+
+    def parse_duration_to_hours(self, duration_str: str) -> float:
+        """Parse duration string to hours"""
+        try:
+            if not duration_str:
+                return 0.0
+            if "hour" in duration_str.lower():
+                parts = duration_str.lower().split()
+                for i, part in enumerate(parts):
+                    if "hour" in part and i > 0:
+                        return float(parts[i-1])
+            elif "min" in duration_str.lower():
+                parts = duration_str.lower().split()
+                for i, part in enumerate(parts):
+                    if "min" in part and i > 0:
+                        return float(parts[i-1]) / 60
+            return 0.0
+        except:
+            return 0.0    
+    
+    def add_heavy_vehicle_analysis_page(self, route_data, vehicle_type="heavy_goods_vehicle"):
+        """Add Heavy Vehicle Specific Analysis page using JSON configuration OR Google APIs"""
+        
+        # Only add for heavy vehicles
+        if vehicle_type not in ["heavy_goods_vehicle", "medium_goods_vehicle", "bus"]:
+            return
+        
+        try:
+            # Try Google API enhanced analysis first
+            api_key = getattr(self, 'google_api_key', None)
+            
+            if api_key:
+                # Try to use Google API enhanced analysis
+                try:
+                    from utils.heavy_vehicle_analyzer import HeavyVehicleRouteAnalyzer
+                    
+                    analyzer = HeavyVehicleRouteAnalyzer(api_key)
+                    print("🚛 Generating Heavy Vehicle Analysis using Google APIs...")
+                    
+                    analysis = analyzer.analyze_heavy_vehicle_suitability(route_data)
+                    
+                    if 'error' not in analysis:
+                        return self.add_google_api_heavy_vehicle_analysis(route_data, analysis, vehicle_type)
+                    else:
+                        print(f"⚠️ Google API analysis failed: {analysis.get('error')}")
+                
+                except ImportError:
+                    print("⚠️ Heavy vehicle analyzer not available - using basic analysis")
+                except Exception as e:
+                    print(f"⚠️ Google API heavy vehicle analysis failed: {e}")
+            
+            # Fallback to basic analysis
+            print("📋 Using basic heavy vehicle analysis...")
+            return self.add_basic_heavy_vehicle_analysis(route_data, vehicle_type)
+            
+        except Exception as e:
+            print(f" Error in heavy vehicle analysis: {e}")
+            # Add minimal error page
+            self.add_page()
+            self.add_section_header("HEAVY VEHICLE ANALYSIS - ERROR", "danger")
+            self.set_text_color(0, 0, 0)
+            self.set_font('Arial', '', 12)
+            self.cell(0, 10, 'Heavy vehicle analysis could not be completed.', 0, 1, 'L')
+            self.cell(0, 8, f'Error: {str(e)}', 0, 1, 'L')
+
+    def get_google_api_key(self):
+        """Get Google API key - you'll need to implement this"""
+        # This should return the same API key used for other Google services
+        return self.google_api_key if hasattr(self, 'google_api_key') else None  
         
     def add_professional_title_page(self):
         """Professional title page with compliance info"""
@@ -481,7 +776,8 @@ class EnhancedRoutePDF(FPDF):
             self.ln(8)
         
         self.ln(3)
-        
+    
+    
     def add_detailed_poi_tables(self, route_data):
         """Add detailed POI tables with S.No, Coordinates, and Distance"""
         route_points = route_data.get('route_points', [])
@@ -752,10 +1048,10 @@ class EnhancedRoutePDF(FPDF):
             # Reset color
             self.set_text_color(0, 0, 0)
             
-            print("✅ Regulatory Compliance page added successfully")
+            print(" Regulatory Compliance page added successfully")
             
         except Exception as e:
-            print(f"❌ Error adding regulatory compliance page: {e}")
+            print(f" Error adding regulatory compliance page: {e}")
             # Add error page
             self.add_page()
             self.add_section_header("REGULATORY COMPLIANCE - ERROR", "danger")
@@ -995,7 +1291,7 @@ class EnhancedRoutePDF(FPDF):
                 self.cell(0, 5, 'Note: Street View may not be available for this location. Using placeholder.', 0, 1, 'C')
             
         except Exception as e:
-            print(f"❌ Error adding dual maps: {e}")
+            print(f" Error adding dual maps: {e}")
             import traceback
             traceback.print_exc()
             self.add_compact_turn_map(lat, lng, api_key, 'roadmap')
@@ -1058,7 +1354,7 @@ class EnhancedRoutePDF(FPDF):
                                 # Add image
                                 self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
                                 
-                                print(f"  ✅ Street View SUCCESS! (attempt {attempt_num+1}, heading: {heading}°)")
+                                print(f"   Street View SUCCESS! (attempt {attempt_num+1}, heading: {heading}°)")
                                 
                                 # Add success label
                                 self.set_font('Arial', 'B', 8)
@@ -1070,7 +1366,7 @@ class EnhancedRoutePDF(FPDF):
                                 return True
                                 
                             except Exception as img_error:
-                                print(f"  ❌ Image processing failed: {img_error}")
+                                print(f"   Image processing failed: {img_error}")
                                 try:
                                     os.unlink(temp_path)
                                 except:
@@ -1079,13 +1375,13 @@ class EnhancedRoutePDF(FPDF):
                         else:
                             print(f"  ⚠️ Response too small ({content_length} bytes) - no street view at this location")
                     else:
-                        print(f"  ❌ HTTP {response.status_code}")
+                        print(f"   HTTP {response.status_code}")
              
                 except requests.RequestException as req_error:
-                    print(f"  ❌ Request failed: {req_error}")
+                    print(f"   Request failed: {req_error}")
                     continue
                 except Exception as e:
-                    print(f"  ❌ Attempt {attempt_num+1} failed: {e}")
+                    print(f"   Attempt {attempt_num+1} failed: {e}")
                     continue
             
             # All attempts failed - add informative placeholder
@@ -1094,7 +1390,7 @@ class EnhancedRoutePDF(FPDF):
             return False
             
         except Exception as e:
-            print(f"❌ Street view critical error: {e}")
+            print(f" Street view critical error: {e}")
             self.add_street_view_placeholder(x_pos, y_pos, width, height, lat, lng)
             return False
     
@@ -1179,7 +1475,7 @@ class EnhancedRoutePDF(FPDF):
                         # Add image
                         self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
                         
-                        print(f"  ✅ Satellite map added successfully")
+                        print(f"   Satellite map added successfully")
                         
                         # Add small text label
                         self.set_font('Arial', '', 7)
@@ -1191,7 +1487,7 @@ class EnhancedRoutePDF(FPDF):
                         return True
                         
                     except Exception as img_error:
-                        print(f"  ❌ Invalid satellite image: {img_error}")
+                        print(f"   Invalid satellite image: {img_error}")
                         os.unlink(temp_path)
                         self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
                         return False
@@ -1200,12 +1496,12 @@ class EnhancedRoutePDF(FPDF):
                     self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
                     return False
             else:
-                print(f"  ❌ Satellite HTTP {response.status_code}")
+                print(f"   Satellite HTTP {response.status_code}")
                 self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
                 return False
             
         except Exception as e:
-            print(f"❌ Satellite map error: {e}")
+            print(f" Satellite map error: {e}")
             self.add_satellite_placeholder(x_pos, y_pos, width, height, lat, lng)
             return False
     
@@ -1312,7 +1608,7 @@ class EnhancedRoutePDF(FPDF):
                         # Add image
                         self.image(temp_path, x=x_pos, y=y_pos, w=width, h=height)
                         
-                        print(f"  ✅ {map_type} map added successfully")
+                        print(f"   {map_type} map added successfully")
                         
                         # Add small text label
                         self.set_font('Arial', '', 7)
@@ -1324,7 +1620,7 @@ class EnhancedRoutePDF(FPDF):
                         return True
                         
                     except Exception as img_error:
-                        print(f"  ❌ Invalid {map_type} image: {img_error}")
+                        print(f"   Invalid {map_type} image: {img_error}")
                         os.unlink(temp_path)
                         self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
                         return False
@@ -1333,12 +1629,12 @@ class EnhancedRoutePDF(FPDF):
                     self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
                     return False
             else:
-                print(f"  ❌ {map_type} HTTP {response.status_code}")
+                print(f"   {map_type} HTTP {response.status_code}")
                 self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
                 return False
             
         except Exception as e:
-            print(f"❌ Static map error ({map_type}): {e}")
+            print(f" Static map error ({map_type}): {e}")
             self.add_map_placeholder(x_pos, y_pos, width, height, lat, lng, map_type)
             return False
  # Continuing from the previous part - Helper methods and main function
@@ -1763,6 +2059,9 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         if api_key:
             pdf.add_comprehensive_map_with_markers(route_data, api_key)
         pdf.add_regulatory_compliance_page(route_data, vehicle_type)
+        if vehicle_type in ["heavy_goods_vehicle", "medium_goods_vehicle", "bus"]:
+            pdf.google_api_key = api_key  # Pass API key to PDF generator
+            pdf.add_heavy_vehicle_analysis_page(route_data, vehicle_type)
         # 3. Detailed POI tables with coordinates and distances
         pdf.add_detailed_poi_tables(route_data)
         # 4. Network Coverage Analysis Page
@@ -1789,7 +2088,7 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         total_turns = len([turn for turn in route_data.get('sharp_turns', []) if turn.get('angle', 0) >= 70])
         estimated_pages = 8 + total_turns  # Base pages + individual turn pages + compliance pages
         
-        print(f"✅ WORKING Enhanced PDF report generated successfully: {filename}")
+        print(f" WORKING Enhanced PDF report generated successfully: {filename}")
         print(f"📊 Features: FIXED text rendering, Regulatory compliance, Individual turn analysis, Street views")
         print(f"📄 Total pages: ~{estimated_pages} (including {total_turns} turn pages + compliance analysis)")
         print(f"🗺️ Street views and satellite maps included for each critical turn")
@@ -1799,7 +2098,7 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         return filename
         
     except Exception as e:
-        print(f"❌ Error generating WORKING enhanced PDF: {e}")
+        print(f" Error generating WORKING enhanced PDF: {e}")
         import traceback
         traceback.print_exc()
         return None
