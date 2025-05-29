@@ -14,6 +14,16 @@ import matplotlib.patches as mpatches
 from matplotlib.patches import Rectangle
 from geopy.distance import geodesic
 
+# Add these imports
+try:
+    from utils.advanced_features.elevation_analyzer import ElevationAnalyzer
+    from utils.advanced_features.emergency_planner import EmergencyPlanner
+    print("✅ Advanced features modules imported successfully")
+except ImportError as e:
+    print(f"⚠️ Advanced features not available: {e}")
+    ElevationAnalyzer = None
+    EmergencyPlanner = None
+
 class EnhancedRoutePDF(FPDF):
     def __init__(self, title=None):
         super().__init__()
@@ -118,7 +128,291 @@ class EnhancedRoutePDF(FPDF):
                         clean_chars.append(char)
             
             return ''.join(clean_chars)
+
+    def add_elevation_analysis_page(self, route_data, api_key=None):
+        """Add elevation analysis page"""
+        if not ElevationAnalyzer:
+            return
         
+        try:
+            analyzer = ElevationAnalyzer(api_key)
+            analysis = analyzer.analyze_route_elevation(route_data.get('route_points', []))
+            
+            if 'error' in analysis:
+                return
+            
+            self.add_page()
+            self.add_section_header("ELEVATION ANALYSIS - GRADIENT RISK ASSESSMENT", "info")
+            self.set_text_color(0, 0, 0)
+            
+            # Elevation Statistics
+            stats = analysis.get('elevation_statistics', {})
+            elevation_data = [
+                ['Minimum Elevation', f"{stats.get('min_elevation', 0):.0f} m"],
+                ['Maximum Elevation', f"{stats.get('max_elevation', 0):.0f} m"],
+                ['Elevation Range', f"{stats.get('elevation_range', 0):.0f} m"],
+                ['Total Ascent', f"{stats.get('total_ascent', 0):.0f} m"],
+                ['Total Descent', f"{stats.get('total_descent', 0):.0f} m"],
+                ['Average Elevation', f"{stats.get('average_elevation', 0):.0f} m"]
+            ]
+            
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'ELEVATION PROFILE STATISTICS', 0, 1, 'L')
+            self.create_simple_table(elevation_data, [70, 110])
+            
+            # Risk Assessment
+            risk_assessment = analysis.get('risk_assessment', {})
+            risk_level = risk_assessment.get('overall_risk_level', 'LOW')
+            
+            self.ln(5)
+            self.set_font('Arial', 'B', 12)
+            
+            if risk_level in ['EXTREME', 'HIGH']:
+                self.set_text_color(220, 53, 69)
+                status_symbol = '❌'
+            elif risk_level == 'MEDIUM':
+                self.set_text_color(253, 126, 20)
+                status_symbol = '⚠️'
+            else:
+                self.set_text_color(40, 167, 69)
+                status_symbol = '✅'
+            
+            self.cell(8, 8, status_symbol, 0, 0, 'C')
+            self.cell(0, 8, f' ELEVATION RISK LEVEL: {risk_level}', 0, 1, 'L')
+            
+            # Risk Segments
+            risk_segments = risk_assessment.get('risk_segments', [])
+            if risk_segments:
+                self.ln(5)
+                self.set_text_color(0, 0, 0)
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, 'HIGH-RISK ELEVATION SEGMENTS', 0, 1, 'L')
+                
+                headers = ['Location', 'Risk Level', 'Gradient %', 'Type']
+                col_widths = [50, 30, 25, 75]
+                
+                # Header row
+                self.set_font('Arial', 'B', 9)
+                self.set_fill_color(230, 230, 230)
+                
+                for i, (header, width) in enumerate(zip(headers, col_widths)):
+                    self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+                    self.cell(width, 10, header, 1, 0, 'C', True)
+                self.ln(10)
+                
+                # Data rows
+                self.set_font('Arial', '', 8)
+                self.set_fill_color(255, 255, 255)
+                
+                for segment in risk_segments[:10]:  # Top 10 risk segments
+                    y_pos = self.get_y()
+                    
+                    # Location
+                    self.set_xy(10, y_pos)
+                    coords = segment.get('location', {})
+                    location_str = f"{coords.get('lat', 0):.4f}, {coords.get('lng', 0):.4f}"
+                    self.cell(50, 8, location_str, 1, 0, 'C')
+                    
+                    # Risk Level
+                    self.set_xy(60, y_pos)
+                    risk = segment.get('risk_level', 'UNKNOWN')
+                    self.cell(30, 8, risk, 1, 0, 'C')
+                    
+                    # Gradient
+                    self.set_xy(90, y_pos)
+                    gradient = abs(segment.get('gradient_percent', 0))
+                    self.cell(25, 8, f"{gradient:.1f}%", 1, 0, 'C')
+                    
+                    # Type
+                    self.set_xy(115, y_pos)
+                    risk_type = segment.get('risk_type', 'UNKNOWN').replace('_', ' ')
+                    self.cell(75, 8, risk_type, 1, 0, 'L')
+                    
+                    self.ln(8)
+            
+            # Recommendations
+            recommendations = analysis.get('driving_recommendations', [])
+            if recommendations:
+                self.ln(5)
+                self.set_font('Arial', 'B', 12)
+                self.set_text_color(0, 0, 0)
+                self.cell(0, 8, 'ELEVATION-BASED DRIVING RECOMMENDATIONS', 0, 1, 'L')
+                
+                for rec in recommendations:
+                    priority = rec.get('priority', 'MEDIUM')
+                    title = rec.get('title', '')
+                    actions = rec.get('actions', [])
+                    
+                    # Priority color
+                    if priority == 'CRITICAL':
+                        priority_color = self.danger_color
+                    elif priority == 'HIGH':
+                        priority_color = self.warning_color
+                    else:
+                        priority_color = self.info_color
+                    
+                    # Recommendation header
+                    self.set_fill_color(*priority_color)
+                    self.rect(10, self.get_y(), 190, 10, 'F')
+                    
+                    self.set_font('Arial', 'B', 10)
+                    self.set_text_color(255, 255, 255)
+                    self.set_xy(15, self.get_y() + 2)
+                    header_text = f"{priority}: {title}"
+                    self.cell(180, 6, self.clean_text(header_text), 0, 1, 'L')
+                    self.ln(2)
+                    
+                    # Actions
+                    self.set_font('Arial', '', 9)
+                    self.set_text_color(0, 0, 0)
+                    for i, action in enumerate(actions[:5], 1):  # Limit to 5 actions
+                        self.cell(8, 6, f'{i}.', 0, 0, 'L')
+                        current_x = self.get_x()
+                        current_y = self.get_y()
+                        self.set_xy(current_x + 8, current_y)
+                        self.multi_cell(170, 6, self.clean_text(action), 0, 'L')
+                        self.ln(1)
+                    
+                    self.ln(5)
+            
+            print("✅ Elevation Analysis page added successfully")
+            
+        except Exception as e:
+            print(f"❌ Error adding elevation analysis: {e}")
+
+    def add_emergency_planning_page(self, route_data, api_key=None):
+        """Add emergency planning page"""
+        if not EmergencyPlanner or not api_key:
+            return
+        
+        try:
+            planner = EmergencyPlanner(api_key)
+            analysis = planner.analyze_emergency_preparedness(route_data)
+            
+            if 'error' in analysis:
+                return
+            
+            self.add_page()
+            self.add_section_header("ADVANCED EMERGENCY PLANNING", "danger")
+            self.set_text_color(0, 0, 0)
+            
+            # Emergency Preparedness Score
+            emergency_score = analysis.get('emergency_services', {}).get('emergency_preparedness_score', 0)
+            
+            if emergency_score >= 80:
+                score_color = self.success_color
+                status = "EXCELLENT"
+            elif emergency_score >= 60:
+                score_color = self.warning_color
+                status = "ADEQUATE"
+            else:
+                score_color = self.danger_color
+                status = "POOR"
+            
+            self.set_fill_color(*score_color)
+            self.rect(10, self.get_y(), 190, 15, 'F')
+            self.set_text_color(255, 255, 255)
+            self.set_font('Arial', 'B', 14)
+            self.set_xy(15, self.get_y() + 3)
+            self.cell(180, 9, f'EMERGENCY PREPAREDNESS: {emergency_score}/100 - {status}', 0, 1, 'C')
+            self.ln(5)
+            
+            # Alternate Routes
+            self.set_text_color(0, 0, 0)
+            alternate_routes = analysis.get('alternate_routes', {})
+            if not alternate_routes.get('error'):
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, 'ALTERNATE ROUTES AVAILABLE', 0, 1, 'L')
+                
+                routes = alternate_routes.get('routes', [])
+                route_data = [
+                    ['Total Alternates', str(alternate_routes.get('total_alternates', 0))],
+                    ['Best Alternate', alternate_routes.get('recommendation', {}).get('reason', 'Not available')],
+                    ['Route Availability', 'GOOD' if len(routes) > 1 else 'LIMITED' if len(routes) == 1 else 'NONE']
+                ]
+                
+                self.create_simple_table(route_data, [60, 120])
+            
+            # Emergency Services
+            emergency_services = analysis.get('emergency_services', {})
+            if emergency_services:
+                self.ln(5)
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, 'EMERGENCY SERVICES ALONG ROUTE', 0, 1, 'L')
+                
+                services_data = [
+                    ['Hospitals', str(emergency_services.get('service_density', {}).get('hospitals_count', 0))],
+                    ['Police Stations', str(emergency_services.get('service_density', {}).get('police_stations_count', 0))],
+                    ['Service Centers', str(emergency_services.get('service_density', {}).get('service_centers_count', 0))],
+                    ['Service Density', emergency_services.get('service_density', {}).get('emergency_density', 'UNKNOWN')]
+                ]
+                
+                self.create_simple_table(services_data, [60, 120])
+            
+            # Emergency Contacts
+            emergency_contacts = analysis.get('emergency_contacts', {})
+            if emergency_contacts:
+                self.ln(5)
+                self.set_font('Arial', 'B', 12)
+                self.cell(0, 8, 'EMERGENCY CONTACT NUMBERS', 0, 1, 'L')
+                
+                national_numbers = emergency_contacts.get('national_emergency_numbers', {})
+                contact_data = []
+                for service, number in national_numbers.items():
+                    contact_data.append([service, number])
+                
+                self.create_simple_table(contact_data, [90, 90])
+            
+            # Contingency Plans
+            contingency_plans = analysis.get('contingency_plans', [])
+            if contingency_plans:
+                self.add_page()
+                self.add_section_header("EMERGENCY CONTINGENCY PLANS", "warning")
+                self.set_text_color(0, 0, 0)
+                
+                for plan in contingency_plans:
+                    scenario = plan.get('scenario', 'Unknown')
+                    priority = plan.get('priority', 'MEDIUM')
+                    actions = plan.get('immediate_actions', [])
+                    
+                    # Scenario header
+                    if priority == 'CRITICAL':
+                        header_color = self.danger_color
+                    elif priority == 'HIGH':
+                        header_color = self.warning_color
+                    else:
+                        header_color = self.info_color
+                    
+                    self.set_fill_color(*header_color)
+                    self.rect(10, self.get_y(), 190, 12, 'F')
+                    
+                    self.set_font('Arial', 'B', 11)
+                    self.set_text_color(255, 255, 255)
+                    self.set_xy(15, self.get_y() + 2)
+                    self.cell(180, 8, f'{priority}: {scenario}', 0, 1, 'L')
+                    self.ln(2)
+                    
+                    # Actions
+                    self.set_font('Arial', '', 10)
+                    self.set_text_color(0, 0, 0)
+                    self.set_font('Arial', 'B', 10)
+                    self.cell(0, 6, 'IMMEDIATE ACTIONS:', 0, 1, 'L')
+                    
+                    self.set_font('Arial', '', 9)
+                    for i, action in enumerate(actions, 1):
+                        self.cell(8, 6, f'{i}.', 0, 0, 'L')
+                        current_x = self.get_x()
+                        current_y = self.get_y()
+                        self.set_xy(current_x + 8, current_y)
+                        self.multi_cell(170, 6, self.clean_text(action), 0, 'L')
+                        self.ln(1)
+                    
+                    self.ln(8)
+            
+            print("✅ Emergency Planning page added successfully")
+            
+        except Exception as e:
+            print(f"❌ Error adding emergency planning: {e}")   
     def add_basic_heavy_vehicle_analysis(self, route_data, vehicle_type="heavy_goods_vehicle"):
         """Add basic heavy vehicle analysis when Google APIs are not available"""
         
@@ -2080,7 +2374,13 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
             if critical_turns:
                 print(f"🔄 Adding {len(critical_turns)} individual turn analysis pages with street views...")
                 pdf.add_individual_turn_pages(route_data, api_key)
-        
+        # 7. Advanced Features - Elevation Analysis
+        if ElevationAnalyzer:
+            pdf.add_elevation_analysis_page(route_data, api_key)
+
+        # 8. Advanced Features - Emergency Planning  
+        if EmergencyPlanner and api_key:
+            pdf.add_emergency_planning_page(route_data, api_key)
         # Save PDF
         pdf.output(filename)
         
