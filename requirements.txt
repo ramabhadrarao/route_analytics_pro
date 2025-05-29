@@ -1,0 +1,57 @@
+# requirements.txt - FIXED Flask Route Analytics Application
+
+# Core Flask and Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+Jinja2==3.1.2
+MarkupSafe==2.1.3
+itsdangerous==2.1.2
+click==8.1.7
+
+# PDF Generation
+fpdf2==2.7.6
+
+# Data Processing and Analysis
+pandas==2.1.1
+numpy==1.24.3
+matplotlib==3.7.2
+
+# HTTP Requests and API Integration
+requests==2.31.0
+urllib3==2.0.4
+
+# Geographic and Mapping
+geopy==2.4.0
+polyline==2.0.0
+
+# Image Processing (for maps and charts)
+Pillow==10.0.1
+
+# Date and Time Handling
+python-dateutil==2.8.2
+
+# Environment Configuration
+python-dotenv==1.0.0
+
+# Logging and Debugging
+colorlog==6.7.0
+
+# Note: secure_filename is built into Werkzeug (part of Flask)
+# No separate installation needed
+
+# System Dependencies Notes:
+# Make sure you have the following system packages installed:
+# - Python 3.8+ 
+# - pip
+# - For matplotlib: libfreetype6-dev, libpng-dev (on Ubuntu/Debian)
+# - For geographic calculations: libgeos-dev, libproj-dev (on Ubuntu/Debian)
+
+# Installation Commands:
+# pip install -r requirements.txt
+# 
+# For Ubuntu/Debian systems, install system dependencies first:
+# sudo apt-get update
+# sudo apt-get install python3-dev libfreetype6-dev libpng-dev libgeos-dev libproj-dev
+#
+# For CentOS/RHEL systems:
+# sudo yum install python3-devel freetype-devel libpng-devel geos-devel proj-devel
