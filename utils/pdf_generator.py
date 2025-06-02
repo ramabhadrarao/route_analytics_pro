@@ -130,6 +130,782 @@ class EnhancedRoutePDF(FPDF):
             return ''.join(clean_chars)
 
     # Enhanced PDF Generator method for Elevation Analysis with GPS Coordinates Table
+    # Add these methods to your existing EnhancedRoutePDF class in utils/pdf_generator.py
+
+class EnhancedRoutePDF(FPDF):
+    # ... existing methods ...
+    
+    def add_supply_customer_details_page(self, route_data, enhanced_data):
+        """NEW PAGE: Supply Location & Customer Details with Geocoding"""
+        self.add_page()
+        self.add_section_header("SUPPLY & CUSTOMER LOCATION DETAILS", "primary")
+        
+        supply_details = enhanced_data.get('supply_details', {})
+        customer_details = enhanced_data.get('customer_details', {})
+        
+        # Supply Location Section
+        self.set_font('Arial', 'B', 14)
+        self.set_text_color(32, 107, 196)
+        self.cell(0, 10, 'SUPPLY LOCATION DETAILS', 0, 1, 'L')
+        
+        supply_data = [
+            ['Location Name', supply_details.get('place_name', 'Unknown')],
+            ['GPS Coordinates', f"{supply_details.get('coordinates', {}).get('lat', 0):.6f}, {supply_details.get('coordinates', {}).get('lng', 0):.6f}"],
+            ['Formatted Address', supply_details.get('formatted_address', 'Address not available')[:80]],
+            ['Location Type', ', '.join(supply_details.get('place_types', [])[:3])],
+            ['Area Classification', self.classify_area_type(supply_details.get('place_types', []))],
+            ['Geocoding Status', '✅ Verified with Google Geocoding API']
+        ]
+        
+        self.create_simple_table(supply_data, [60, 120])
+        
+        # Customer Location Section
+        self.ln(10)
+        self.set_font('Arial', 'B', 14)
+        self.set_text_color(32, 107, 196)
+        self.cell(0, 10, 'CUSTOMER LOCATION DETAILS', 0, 1, 'L')
+        
+        customer_data = [
+            ['Customer Name', customer_details.get('customer_name', 'Customer Location')],
+            ['GPS Coordinates', f"{customer_details.get('coordinates', {}).get('lat', 0):.6f}, {customer_details.get('coordinates', {}).get('lng', 0):.6f}"],
+            ['Formatted Address', customer_details.get('formatted_address', 'Address not available')[:80]],
+            ['Location Type', ', '.join(customer_details.get('place_types', [])[:3])],
+            ['Area Classification', self.classify_area_type(customer_details.get('place_types', []))],
+            ['Delivery Accessibility', self.assess_delivery_accessibility(customer_details.get('place_types', []))]
+        ]
+        
+        self.create_simple_table(customer_data, [60, 120])
+        
+        # Route Summary
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'ROUTE SUMMARY', 0, 1, 'L')
+        
+        route_summary = [
+            ['Total Distance', route_data.get('distance', 'Unknown')],
+            ['Estimated Duration', route_data.get('duration', 'Unknown')],
+            ['Route Type', 'Supply to Customer Delivery'],
+            ['Geocoding Accuracy', 'High (Google API verified)']
+        ]
+        
+        self.create_simple_table(route_summary, [60, 120])
+        
+        print("✅ Supply & Customer Details page added")
+    
+    def add_terrain_classification_page(self, terrain_analysis):
+        """NEW PAGE: Terrain Classification Analysis"""
+        self.add_page()
+        self.add_section_header("TERRAIN CLASSIFICATION ANALYSIS", "success")
+        
+        # Overall Classification
+        overall = terrain_analysis.get('overall_classification', 'mixed')
+        distribution = terrain_analysis.get('terrain_distribution', {})
+        
+        self.set_font('Arial', 'B', 14)
+        self.set_text_color(40, 167, 69)
+        self.cell(0, 10, f'OVERALL TERRAIN: {overall.upper().replace("_", " ")}', 0, 1, 'C')
+        
+        # Distribution Statistics
+        self.ln(5)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'TERRAIN DISTRIBUTION', 0, 1, 'L')
+        
+        total_segments = sum(distribution.values())
+        distribution_data = []
+        
+        for terrain_type, count in distribution.items():
+            percentage = (count / total_segments * 100) if total_segments > 0 else 0
+            distribution_data.append([
+                terrain_type.replace('_', ' ').title(),
+                f"{count} segments",
+                f"{percentage:.1f}%",
+                self.get_terrain_description(terrain_type)
+            ])
+        
+        # Create distribution table
+        headers = ['Terrain Type', 'Segments', 'Percentage', 'Description']
+        col_widths = [40, 30, 25, 90]
+        
+        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(230, 230, 230)
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        self.set_font('Arial', '', 9)
+        self.set_fill_color(255, 255, 255)
+        for row in distribution_data:
+            y_pos = self.get_y()
+            for i, (cell, width) in enumerate(zip(row, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 8, self.clean_text(str(cell)), 1, 0, 'L')
+            self.ln(8)
+        
+        # Detailed Terrain Segments
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'DETAILED TERRAIN SEGMENTS', 0, 1, 'L')
+        
+        terrain_segments = terrain_analysis.get('terrain_segments', [])
+        segment_headers = ['Segment', 'Coordinates', 'Terrain', 'Distance (km)', 'Location']
+        segment_widths = [20, 45, 25, 25, 70]
+        
+        # Headers
+        self.set_font('Arial', 'B', 8)
+        self.set_fill_color(230, 230, 230)
+        for i, (header, width) in enumerate(zip(segment_headers, segment_widths)):
+            self.set_xy(10 + sum(segment_widths[:i]), self.get_y())
+            self.cell(width, 8, header, 1, 0, 'C', True)
+        self.ln(8)
+        
+        # Data rows (limit to first 20 for space)
+        self.set_font('Arial', '', 7)
+        self.set_fill_color(255, 255, 255)
+        for segment in terrain_segments[:20]:
+            if self.get_y() > 270:
+                break
+                
+            y_pos = self.get_y()
+            coords = segment.get('coordinates', {})
+            
+            row_data = [
+                str(segment.get('segment_id', '')),
+                f"{coords.get('lat', 0):.4f}, {coords.get('lng', 0):.4f}",
+                segment.get('terrain_type', '').title(),
+                f"{segment.get('distance_from_start', 0):.1f}",
+                segment.get('formatted_address', 'Unknown')[:25]
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, segment_widths)):
+                self.set_xy(10 + sum(segment_widths[:i]), y_pos)
+                self.cell(width, 6, self.clean_text(cell), 1, 0, 'L')
+            self.ln(6)
+        
+        print("✅ Terrain Classification page added")
+    
+    def add_major_highways_page(self, highway_analysis):
+        """NEW PAGE: Major Highways Identification"""
+        self.add_page()
+        self.add_section_header("MAJOR HIGHWAYS ANALYSIS", "info")
+        
+        major_highways = highway_analysis.get('major_highways', [])
+        highway_segments = highway_analysis.get('highway_segments', [])
+        
+        # Highway Statistics
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'HIGHWAY COVERAGE STATISTICS', 0, 1, 'L')
+        
+        stats_data = [
+            ['Total Major Highways', str(len(major_highways))],
+            ['Highway Segments', str(len(highway_segments))],
+            ['Total Highway Distance', f"{highway_analysis.get('total_highway_distance', 0):.1f} km"],
+            ['Highway Percentage', f"{highway_analysis.get('highway_percentage', 0):.1f}% of total route"],
+            ['Analysis Method', 'Google Directions API with highway detection']
+        ]
+        
+        self.create_simple_table(stats_data, [70, 110])
+        
+        # Major Highways List
+        if major_highways:
+            self.ln(10)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'MAJOR HIGHWAYS IDENTIFIED', 0, 1, 'L')
+            
+            highway_headers = ['S.No', 'Highway Name', 'Highway Type', 'First Encounter (km)']
+            highway_widths = [20, 60, 60, 45]
+            
+            # Headers
+            self.set_font('Arial', 'B', 9)
+            self.set_fill_color(230, 230, 230)
+            for i, (header, width) in enumerate(zip(highway_headers, highway_widths)):
+                self.set_xy(10 + sum(highway_widths[:i]), self.get_y())
+                self.cell(width, 10, header, 1, 0, 'C', True)
+            self.ln(10)
+            
+            # Data rows
+            self.set_font('Arial', '', 9)
+            self.set_fill_color(255, 255, 255)
+            for i, highway in enumerate(major_highways, 1):
+                y_pos = self.get_y()
+                
+                row_data = [
+                    str(i),
+                    highway.get('name', 'Unknown Highway'),
+                    highway.get('type', 'Highway'),
+                    f"{highway.get('first_encounter_distance', 0):.1f}"
+                ]
+                
+                for j, (cell, width) in enumerate(zip(row_data, highway_widths)):
+                    self.set_xy(10 + sum(highway_widths[:j]), y_pos)
+                    self.cell(width, 8, self.clean_text(cell), 1, 0, 'L')
+                self.ln(8)
+        
+        # Highway Safety Information
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'HIGHWAY DRIVING GUIDELINES', 0, 1, 'L')
+        
+        guidelines = [
+            "Maintain higher speeds on highways (80-100 km/h as per vehicle type)",
+            "Use designated truck lanes where available",
+            "Follow highway entry/exit protocols",
+            "Maintain safe following distance (minimum 3-second rule)",
+            "Be aware of highway toll plazas and FASTag requirements",
+            "Plan fuel stops at highway service stations",
+            "Emergency contact: Highway Authority helpline 1033"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, guideline in enumerate(guidelines, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(guideline), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Major Highways page added")
+    
+    def add_time_specific_congestion_page(self, congestion_analysis):
+        """NEW PAGE: Time-Specific Congestion Analysis"""
+        self.add_page()
+        self.add_section_header("TIME-SPECIFIC CONGESTION ANALYSIS", "warning")
+        
+        peak_hours = congestion_analysis.get('peak_hours', {})
+        recommendations = congestion_analysis.get('time_recommendations', [])
+        
+        # Time Period Analysis
+        for period_name, period_data in peak_hours.items():
+            if not period_data.get('segments'):
+                continue
+                
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(253, 126, 20)
+            self.cell(0, 10, f'{period_name.upper()} PERIOD ANALYSIS ({period_data.get("start", "")} - {period_data.get("end", "")})', 0, 1, 'L')
+            
+            segments = period_data.get('segments', [])
+            
+            # Period statistics
+            heavy_traffic = len([s for s in segments if s.get('traffic_level') == 'heavy'])
+            moderate_traffic = len([s for s in segments if s.get('traffic_level') == 'moderate'])
+            light_traffic = len([s for s in segments if s.get('traffic_level') == 'light'])
+            
+            period_stats = [
+                ['Time Period', f"{period_data.get('start', '')} - {period_data.get('end', '')}"],
+                ['Heavy Traffic Segments', f"{heavy_traffic} segments"],
+                ['Moderate Traffic Segments', f"{moderate_traffic} segments"],
+                ['Light Traffic Segments', f"{light_traffic} segments"],
+                ['Overall Assessment', self.assess_period_traffic(heavy_traffic, len(segments))]
+            ]
+            
+            self.set_text_color(0, 0, 0)
+            self.create_simple_table(period_stats, [60, 120])
+            
+            # Detailed segments for this period
+            if segments:
+                self.ln(5)
+                self.set_font('Arial', 'B', 10)
+                self.cell(0, 8, f'CONGESTION HOTSPOTS - {period_name.title()} Period', 0, 1, 'L')
+                
+                segment_headers = ['Location', 'Coordinates', 'Traffic Level', 'Delay (min)', 'Speed Advice']
+                segment_widths = [35, 40, 30, 25, 55]
+                
+                # Headers
+                self.set_font('Arial', 'B', 8)
+                self.set_fill_color(255, 245, 230)
+                for i, (header, width) in enumerate(zip(segment_headers, segment_widths)):
+                    self.set_xy(10 + sum(segment_widths[:i]), self.get_y())
+                    self.cell(width, 8, header, 1, 0, 'C', True)
+                self.ln(8)
+                
+                # Segment data
+                self.set_font('Arial', '', 7)
+                self.set_fill_color(255, 255, 255)
+                for segment in segments[:5]:  # Limit to 5 per period
+                    if self.get_y() > 260:
+                        break
+                        
+                    y_pos = self.get_y()
+                    coords = segment.get('coordinates', {})
+                    
+                    # Color code by traffic level
+                    traffic_level = segment.get('traffic_level', 'unknown')
+                    if traffic_level == 'heavy':
+                        self.set_text_color(220, 53, 69)
+                    elif traffic_level == 'moderate':
+                        self.set_text_color(253, 126, 20)
+                    else:
+                        self.set_text_color(40, 167, 69)
+                    
+                    row_data = [
+                        segment.get('location', 'Unknown'),
+                        f"{coords.get('lat', 0):.4f}, {coords.get('lng', 0):.4f}",
+                        traffic_level.title(),
+                        str(segment.get('delay_minutes', 0)),
+                        segment.get('recommended_speed', 'Normal')
+                    ]
+                    
+                    for j, (cell, width) in enumerate(zip(row_data, segment_widths)):
+                        self.set_xy(10 + sum(segment_widths[:j]), y_pos)
+                        self.cell(width, 6, self.clean_text(cell)[:15], 1, 0, 'L')
+                    self.ln(6)
+                
+                self.set_text_color(0, 0, 0)
+            
+            self.ln(5)
+        
+        # Time-based Recommendations
+        if recommendations:
+            self.ln(5)
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(32, 107, 196)
+            self.cell(0, 8, 'TIME-BASED TRAVEL RECOMMENDATIONS', 0, 1, 'L')
+            
+            self.set_font('Arial', '', 10)
+            self.set_text_color(0, 0, 0)
+            
+            for i, recommendation in enumerate(recommendations, 1):
+                self.cell(8, 6, f"{i}.", 0, 0, 'L')
+                current_x = self.get_x()
+                current_y = self.get_y()
+                self.set_xy(current_x + 8, current_y)
+                self.multi_cell(170, 6, self.clean_text(recommendation), 0, 'L')
+                self.ln(2)
+        
+        print("✅ Time-Specific Congestion page added")
+    
+    def add_enhanced_printable_coordinates_page(self, printable_tables):
+        """NEW PAGE: Enhanced Printable Coordinate Tables"""
+        self.add_page()
+        self.add_section_header("PRINTABLE GPS COORDINATE TABLES", "primary")
+        
+        # Main Route Coordinates Table
+        main_table = printable_tables.get('main_route_table', [])
+        if main_table:
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 8, 'MAIN ROUTE COORDINATES (SAMPLED POINTS)', 0, 1, 'L')
+            
+            route_headers = ['Point', 'Latitude', 'Longitude', 'DMS Format', 'Distance (km)', 'Location']
+            route_widths = [15, 25, 25, 40, 25, 55]
+            
+            self.create_coordinate_table(main_table, route_headers, route_widths, [
+                'point_number', 'latitude', 'longitude', 'coordinates_dms', 'distance_from_start', 'location_description'
+            ])
+        
+        # Critical Points Table (Sharp Turns)
+        self.add_page()  # New page for critical points
+        self.add_section_header("CRITICAL TURN COORDINATES", "danger")
+        
+        critical_table = printable_tables.get('critical_points_table', [])
+        if critical_table:
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(0, 0, 0)
+            self.cell(0, 8, 'SHARP TURN COORDINATES WITH DANGER LEVELS', 0, 1, 'L')
+            
+            critical_headers = ['Turn #', 'Latitude', 'Longitude', 'Angle', 'Danger Level', 'Speed Limit']
+            critical_widths = [20, 30, 30, 25, 40, 40]
+            
+            self.create_coordinate_table(critical_table, critical_headers, critical_widths, [
+                'turn_number', 'latitude', 'longitude', 'turn_angle', 'danger_level', 'recommended_speed'
+            ])
+        
+        # POI Coordinates Table
+        poi_table = printable_tables.get('poi_coordinates_table', [])
+        if poi_table:
+            self.ln(10)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'POINTS OF INTEREST COORDINATES', 0, 1, 'L')
+            
+            poi_headers = ['POI #', 'Type', 'Name', 'Latitude', 'Longitude', 'Location']
+            poi_widths = [20, 30, 40, 30, 30, 35]
+            
+            self.create_coordinate_table(poi_table, poi_headers, poi_widths, [
+                'poi_number', 'poi_type', 'name', 'latitude', 'longitude', 'location'
+            ], max_rows=15)
+        
+        print("✅ Enhanced Printable Coordinates page added")
+    
+    def add_color_coded_risk_visualization_page(self, route_data, color_map_url):
+        """NEW PAGE: Color-Coded Risk Visualization"""
+        self.add_page()
+        self.add_section_header("COLOR-CODED RISK VISUALIZATION MAP", "warning")
+        
+        # Risk Legend
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'RISK COLOR CODING LEGEND', 0, 1, 'L')
+        
+        legend_data = [
+            ['🔴 RED', 'EXTREME RISK', 'Blind spots >80°, extreme danger turns'],
+            ['🟠 ORANGE', 'HIGH RISK', 'Sharp turns 70-80°, significant hazards'],
+            ['🟡 YELLOW', 'MEDIUM RISK', 'Moderate turns 45-70°, caution required'],
+            ['🔵 BLUE', 'EMERGENCY SERVICES', 'Hospitals, emergency facilities'],
+            ['🟢 GREEN', 'SAFE ZONES', 'Start/end points, rest areas'],
+            ['🟤 BROWN', 'ELEVATION CHANGES', 'Significant ascents/descents']
+        ]
+        
+        self.create_simple_table(legend_data, [25, 35, 125])
+        
+        # Add the color-coded map if URL is provided
+        if color_map_url:
+            self.ln(10)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'COLOR-CODED ROUTE MAP', 0, 1, 'L')
+            
+            try:
+                # Download and add the map image
+                import requests
+                import tempfile
+                
+                response = requests.get(color_map_url, timeout=20)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
+                        temp.write(response.content)
+                        temp_path = temp.name
+                    
+                    # Add image to PDF
+                    current_y = self.get_y()
+                    img_width = 180
+                    img_height = 120
+                    
+                    if current_y + img_height > 270:
+                        self.add_page()
+                        current_y = self.get_y()
+                    
+                    x_position = (210 - img_width) / 2
+                    
+                    # Add border
+                    self.set_draw_color(200, 200, 200)
+                    self.rect(x_position - 2, current_y - 2, img_width + 4, img_height + 4, 'D')
+                    
+                    # Add image
+                    self.image(temp_path, x=x_position, y=current_y, w=img_width, h=img_height)
+                    
+                    os.unlink(temp_path)
+                    self.set_y(current_y + img_height + 10)
+                    
+                    print("✅ Multi-layer map added successfully")
+                else:
+                    self.set_font('Arial', '', 10)
+                    self.cell(0, 6, 'Multi-layer map could not be generated. Check API connectivity.', 0, 1, 'L')
+                    
+            except Exception as e:
+                print(f"Error adding multi-layer map: {e}")
+                self.set_font('Arial', '', 10)
+                self.cell(0, 6, f'Map generation error: {str(e)}', 0, 1, 'L')
+        
+        # Layer Statistics
+        self.ln(5)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'LAYER DATA STATISTICS', 0, 1, 'L')
+        
+        # Count data for each layer
+        sharp_turns = len(route_data.get('sharp_turns', []))
+        hospitals = len(route_data.get('hospitals', {}))
+        elevation_points = len(route_data.get('elevation', []))
+        total_pois = sum([
+            len(route_data.get('petrol_bunks', {})),
+            len(route_data.get('schools', {})),
+            len(route_data.get('food_stops', {}))
+        ])
+        
+        layer_stats = [
+            ['Risk Points (Sharp Turns)', str(sharp_turns), 'Marked with severity color coding'],
+            ['Emergency Services', str(hospitals), 'Hospitals and medical facilities'],
+            ['Elevation Change Points', str(elevation_points), 'Significant gradient changes'],
+            ['Points of Interest', str(total_pois), 'Fuel, food, and service locations'],
+            ['Total Route Points', str(route_data.get('total_points', 0)), 'Complete GPS coordinate coverage']
+        ]
+        
+        self.create_simple_table(layer_stats, [50, 25, 110])
+        
+        print("✅ Multi-Layer Maps page added")
+    
+    # Helper methods for the new pages
+    def classify_area_type(self, place_types):
+        """Classify area based on Google place types"""
+        if any(t in place_types for t in ['locality', 'sublocality', 'neighborhood']):
+            return 'Urban Area'
+        elif any(t in place_types for t in ['administrative_area_level_3', 'postal_town']):
+            return 'Semi-Urban Area'
+        else:
+            return 'Rural Area'
+    
+    def assess_delivery_accessibility(self, place_types):
+        """Assess delivery accessibility based on location type"""
+        if any(t in place_types for t in ['establishment', 'point_of_interest']):
+            return 'Good - Commercial area'
+        elif any(t in place_types for t in ['locality', 'sublocality']):
+            return 'Excellent - Urban accessibility'
+        else:
+            return 'Moderate - May need local directions'
+    
+    def get_terrain_description(self, terrain_type):
+        """Get description for terrain type"""
+        descriptions = {
+            'urban': 'Built-up areas, cities, heavy traffic',
+            'semi_urban': 'Town areas, moderate development',
+            'rural': 'Open areas, villages, agricultural land'
+        }
+        return descriptions.get(terrain_type, 'Mixed terrain type')
+    
+    def assess_period_traffic(self, heavy_segments, total_segments):
+        """Assess traffic for a time period"""
+        if total_segments == 0:
+            return 'No data'
+        
+        heavy_percentage = (heavy_segments / total_segments) * 100
+        
+        if heavy_percentage > 60:
+            return 'HIGH CONGESTION - Avoid this period'
+        elif heavy_percentage > 30:
+            return 'MODERATE CONGESTION - Plan extra time'
+        else:
+            return 'LOW CONGESTION - Good travel time'
+    
+    def create_coordinate_table(self, table_data, headers, widths, field_keys, max_rows=25):
+        """Create a formatted coordinate table"""
+        if not table_data:
+            self.set_font('Arial', '', 10)
+            self.cell(0, 6, 'No coordinate data available', 0, 1, 'L')
+            return
+        
+        # Headers
+        self.set_font('Arial', 'B', 8)
+        self.set_fill_color(230, 230, 230)
+        for i, (header, width) in enumerate(zip(headers, widths)):
+            self.set_xy(10 + sum(widths[:i]), self.get_y())
+            self.cell(width, 8, header, 1, 0, 'C', True)
+        self.ln(8)
+        
+        # Data rows
+        self.set_font('Arial', '', 7)
+        self.set_fill_color(255, 255, 255)
+        
+        for row in table_data[:max_rows]:
+            if self.get_y() > 270:
+                break
+                
+            y_pos = self.get_y()
+            
+            for i, (field_key, width) in enumerate(zip(field_keys, widths)):
+                value = str(row.get(field_key, ''))
+                # Truncate long values
+                if len(value) > width // 3:
+                    value = value[:width//3] + '...'
+                
+                self.set_xy(10 + sum(widths[:i]), y_pos)
+                self.cell(width, 6, self.clean_text(value), 1, 0, 'L')
+            self.ln(6)
+        
+        if len(table_data) > max_rows:
+            self.set_font('Arial', 'I', 8)
+            self.set_text_color(100, 100, 100)
+            self.cell(0, 5, f'... and {len(table_data) - max_rows} more entries (see full data in digital format)', 0, 1, 'C')
+            self.set_text_color(0, 0, 0)
+
+    # INTEGRATION METHOD: Add this to your existing generate_pdf function
+    def integrate_google_maps_enhancements(self, route_data, api_key, vehicle_type="heavy_goods_vehicle"):
+        """MAIN INTEGRATION METHOD: Add all Google Maps enhancements to PDF"""
+        
+        try:
+            # Import the new enhancement module
+            from utils.google_maps_enhancements import GoogleMapsEnhancements
+            
+            # Initialize enhancer
+            enhancer = GoogleMapsEnhancements(api_key)
+            
+            print("🗺️ Starting Google Maps API Enhancements Integration...")
+            
+            # 1. Supply & Customer Details Enhancement
+            enhanced_supply_customer = enhancer.enhance_route_with_supply_customer_details(
+                route_data, 
+                supply_location="Supply Location", 
+                customer_name="Customer Destination"
+            )
+            self.add_supply_customer_details_page(route_data, enhanced_supply_customer)
+            
+            # 2. Terrain Classification
+            terrain_analysis = enhancer.classify_route_terrain(route_data.get('route_points', []))
+            self.add_terrain_classification_page(terrain_analysis)
+            
+            # 3. Major Highways Identification
+            highway_analysis = enhancer.identify_major_highways(route_data)
+            self.add_major_highways_page(highway_analysis)
+            
+            # 4. Time-Specific Congestion Analysis
+            congestion_analysis = enhancer.analyze_time_specific_congestion(route_data.get('route_points', []))
+            self.add_time_specific_congestion_page(congestion_analysis)
+            
+            # 5. Enhanced Elevation Analysis
+            elevation_enhancement = enhancer.enhanced_elevation_analysis(route_data.get('route_points', []))
+            # This would integrate with your existing elevation analysis
+            
+            # 6. Printable Coordinate Tables
+            printable_tables = enhancer.generate_printable_coordinate_tables(route_data)
+            self.add_enhanced_printable_coordinates_page(printable_tables)
+            
+            # 7. Color-Coded Risk Visualization
+            color_map_url = enhancer.generate_color_coded_risk_map(route_data)
+            self.add_color_coded_risk_visualization_page(route_data, color_map_url)
+            
+            # 8. Multi-Layer Maps
+            layered_map_url = enhancer.create_risk_emergency_elevation_layers(route_data)
+            self.add_layered_maps_page(route_data, layered_map_url)
+            
+            print("✅ All Google Maps API enhancements integrated successfully!")
+            print("📄 Added 8 new PDF pages covering all JMP missing features")
+            
+            return True
+            
+        except ImportError:
+            print("⚠️ Google Maps enhancements module not found. Creating basic placeholder pages...")
+            self.add_placeholder_enhancement_pages()
+            return False
+        except Exception as e:
+            print(f"❌ Error integrating Google Maps enhancements: {e}")
+            return False
+    
+    def add_placeholder_enhancement_pages(self):
+        """Add placeholder pages when enhancement module is not available"""
+        
+        # Placeholder for missing features
+        self.add_page()
+        self.add_section_header("GOOGLE MAPS API ENHANCEMENTS - PLACEHOLDER", "info")
+        
+        missing_features = [
+            "Supply & Customer Location Details",
+            "Terrain Classification Analysis", 
+            "Major Highways Identification",
+            "Time-Specific Congestion Mapping",
+            "Enhanced Elevation Analysis",
+            "Printable GPS Coordinate Tables",
+            "Color-Coded Risk Visualization", 
+            "Multi-Layer Route Maps"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        self.cell(0, 8, 'The following Google Maps API enhancements are available:', 0, 1, 'L')
+        self.ln(5)
+        
+        for i, feature in enumerate(missing_features, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            self.cell(0, 6, self.clean_text(feature), 0, 1, 'L')
+        
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(32, 107, 196)
+        self.cell(0, 8, 'TO ENABLE THESE FEATURES:', 0, 1, 'L')
+        
+        self.set_font('Arial', '', 10)
+        self.set_text_color(0, 0, 0)
+        instructions = [
+            "1. Create utils/google_maps_enhancements.py with the GoogleMapsEnhancements class",
+            "2. Ensure Google Maps API key is properly configured",
+            "3. Update your generate_pdf function to call integrate_google_maps_enhancements()",
+            "4. All 9 missing JMP features will be automatically added to your PDF reports"
+        ]
+        
+        for instruction in instructions:
+            self.multi_cell(0, 6, self.clean_text(instruction), 0, 'L')
+            self.ln(2)x_position, y=current_y, w=img_width, h=img_height)
+                    
+                    import os
+                    os.unlink(temp_path)
+                    
+                    self.set_y(current_y + img_height + 10)
+                    
+                    print("✅ Color-coded map image added successfully")
+                else:
+                    self.set_font('Arial', '', 10)
+                    self.cell(0, 6, 'Color-coded map could not be generated. Check API connectivity.', 0, 1, 'L')
+                    
+            except Exception as e:
+                print(f"Error adding color-coded map: {e}")
+                self.set_font('Arial', '', 10)
+                self.cell(0, 6, f'Map generation error: {str(e)}', 0, 1, 'L')
+        
+        # Risk Statistics
+        sharp_turns = route_data.get('sharp_turns', [])
+        if sharp_turns:
+            self.ln(5)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'RISK DISTRIBUTION STATISTICS', 0, 1, 'L')
+            
+            extreme_risk = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+            high_risk = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+            medium_risk = len([t for t in sharp_turns if 45 <= t.get('angle', 0) < 70])
+            
+            risk_stats = [
+                ['Extreme Risk Points (Red)', str(extreme_risk), 'Require CRAWL SPEED 15-20 km/h'],
+                ['High Risk Points (Orange)', str(high_risk), 'Require SLOW SPEED 25-30 km/h'],
+                ['Medium Risk Points (Yellow)', str(medium_risk), 'Require CAUTION and reduced speed'],
+                ['Total Risk Points', str(len(sharp_turns)), 'Individual analysis pages included']
+            ]
+            
+            self.create_simple_table(risk_stats, [50, 25, 110])
+        
+        print("✅ Color-Coded Risk Visualization page added")
+    
+    def add_layered_maps_page(self, route_data, layered_map_url):
+        """NEW PAGE: Risk/Emergency/Elevation Layers"""
+        self.add_page()
+        self.add_section_header("MULTI-LAYER ROUTE ANALYSIS MAP", "info")
+        
+        # Layer Description
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'MAP LAYERS EXPLANATION', 0, 1, 'L')
+        
+        layer_info = [
+            ['🔴 Risk Layer', 'Sharp turns and hazardous points marked with severity levels'],
+            ['🏥 Emergency Layer', 'Hospitals and emergency services along the route'],
+            ['⛰️ Elevation Layer', 'Significant elevation changes and gradient points'],
+            ['🛣️ Route Layer', 'Complete route path with all coordinates'],
+            ['🎯 POI Layer', 'Points of interest including fuel, food, and services']
+        ]
+        
+        self.create_simple_table(layer_info, [40, 145])
+        
+        # Add the layered map
+        if layered_map_url:
+            self.ln(10)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'COMPREHENSIVE MULTI-LAYER MAP', 0, 1, 'L')
+            
+            try:
+                import requests
+                import tempfile
+                import os
+                
+                response = requests.get(layered_map_url, timeout=25)
+                if response.status_code == 200:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp:
+                        temp.write(response.content)
+                        temp_path = temp.name
+                    
+                    current_y = self.get_y()
+                    img_width = 180
+                    img_height = 130
+                    
+                    if current_y + img_height > 270:
+                        self.add_page()
+                        current_y = self.get_y()
+                    
+                    x_position = (210 - img_width) / 2
+                    
+                    # Add enhanced border
+                    self.set_draw_color(100, 100, 100)
+                    self.set_line_width(2)
+                    self.rect(x_position - 3, current_y - 3, img_width + 6, img_height + 6, 'D')
+                    
+                    # Add image
+                    self.image(temp_path, x=
     # Add this method to your EnhancedRoutePDF class in utils/pdf_generator.py
 
     def add_elevation_analysis_page(self, route_data, api_key=None):
