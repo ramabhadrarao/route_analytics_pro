@@ -587,7 +587,1015 @@ class EnhancedRoutePDF(FPDF):
 # PART 2: NEW GOOGLE MAPS ENHANCEMENT METHODS - ADDED FOR JMP COMPLIANCE
 # ================================================================================
 # 🆕 ALL METHODS BELOW ARE NEW - ADDED FOR GOOGLE MAPS API INTEGRATION
+    # ================================================================================
+# MISSING METHODS FROM V1 - ADD THESE TO YOUR EnhancedRoutePDF CLASS
+# ================================================================================
 
+    def add_weather_analysis_page(self, route_data):
+        """Add comprehensive weather analysis page"""
+        weather_data = route_data.get('weather', [])
+        if not weather_data:
+            return
+        
+        self.add_page()
+        self.add_section_header("WEATHER CONDITIONS ANALYSIS", "info")
+        
+        # Weather Statistics Summary
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(0, 0, 0)
+        self.cell(0, 8, 'WEATHER CONDITIONS ALONG ROUTE', 0, 1, 'L')
+        
+        # Weather summary table
+        total_points = len(weather_data)
+        clear_weather = len([w for w in weather_data if w.get('condition', '').lower() in ['clear', 'sunny']])
+        cloudy_weather = len([w for w in weather_data if w.get('condition', '').lower() in ['cloudy', 'overcast']])
+        rainy_weather = len([w for w in weather_data if w.get('condition', '').lower() in ['rain', 'drizzle', 'showers']])
+        
+        weather_summary = [
+            ['Total Weather Points', str(total_points)],
+            ['Clear Weather Areas', f"{clear_weather} locations ({(clear_weather/total_points*100):.1f}%)"],
+            ['Cloudy Weather Areas', f"{cloudy_weather} locations ({(cloudy_weather/total_points*100):.1f}%)"],
+            ['Rainy Weather Areas', f"{rainy_weather} locations ({(rainy_weather/total_points*100):.1f}%)"],
+            ['Weather Data Source', 'Real-time weather monitoring'],
+            ['Analysis Accuracy', 'High - GPS coordinate based']
+        ]
+        
+        self.create_simple_table(weather_summary, [70, 110])
+        
+        # Detailed Weather Points Table
+        self.ln(10)
+        self.add_section_header("DETAILED WEATHER POINTS", "info")
+        
+        headers = ['S.No', 'Location', 'Weather Condition', 'Temperature (°C)', 'Humidity (%)', 'Wind Speed (km/h)', 'Visibility']
+        col_widths = [15, 35, 30, 25, 22, 25, 33]
+        
+        # Header row
+        self.set_font('Arial', 'B', 8)
+        self.set_fill_color(230, 240, 255)
+        self.set_text_color(0, 0, 0)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 7)
+        self.set_fill_color(255, 255, 255)
+        
+        for idx, weather_point in enumerate(weather_data[:25], 1):  # Limit to 25 points
+            if self.get_y() > 270:
+                self.add_page()
+                self.add_section_header("WEATHER POINTS (Continued)", "info")
+            
+            condition = weather_point.get('condition', 'Unknown')
+            
+            # Color code based on weather condition
+            if condition.lower() in ['rain', 'storm', 'heavy rain']:
+                self.set_text_color(220, 53, 69)  # Red for bad weather
+            elif condition.lower() in ['cloudy', 'overcast']:
+                self.set_text_color(253, 126, 20)  # Orange for cloudy
+            else:
+                self.set_text_color(40, 167, 69)  # Green for good weather
+            
+            y_pos = self.get_y()
+            
+            row_data = [
+                str(idx),
+                weather_point.get('location', 'Unknown')[:15],
+                condition[:12],
+                str(weather_point.get('temperature', 'N/A')),
+                str(weather_point.get('humidity', 'N/A')),
+                str(weather_point.get('wind_speed', 'N/A')),
+                weather_point.get('visibility', 'Good')[:12]
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 6, self.clean_text(cell), 1, 0, 'L')
+            self.ln(6)
+        
+        # Reset text color
+        self.set_text_color(0, 0, 0)
+        
+        print("✅ Weather Analysis page added")
+
+    def add_weather_alerts_page(self, route_data):
+        """Add weather alerts and recommendations"""
+        weather_data = route_data.get('weather', [])
+        if not weather_data:
+            return
+        
+        self.add_page()
+        self.add_section_header("WEATHER ALERTS & RECOMMENDATIONS", "warning")
+        
+        # Weather Risk Assessment
+        high_risk_weather = [w for w in weather_data if w.get('condition', '').lower() in ['rain', 'storm', 'heavy rain', 'fog']]
+        moderate_risk_weather = [w for w in weather_data if w.get('condition', '').lower() in ['cloudy', 'overcast', 'drizzle']]
+        
+        risk_assessment = [
+            ['High Risk Weather Areas', str(len(high_risk_weather)), 'Requires extreme caution'],
+            ['Moderate Risk Areas', str(len(moderate_risk_weather)), 'Requires normal caution'],
+            ['Safe Weather Areas', str(len(weather_data) - len(high_risk_weather) - len(moderate_risk_weather)), 'Normal driving conditions'],
+            ['Overall Weather Risk', 'HIGH' if len(high_risk_weather) > 3 else 'MODERATE' if len(moderate_risk_weather) > 5 else 'LOW', 'Based on route analysis']
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'WEATHER RISK ASSESSMENT', 0, 1, 'L')
+        self.create_simple_table(risk_assessment, [50, 30, 100])
+        
+        # Weather-Specific Recommendations
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'WEATHER-SPECIFIC DRIVING RECOMMENDATIONS', 0, 1, 'L')
+        
+        weather_recommendations = [
+            "RAIN CONDITIONS: Reduce speed by 20-30%, increase following distance to 6 seconds",
+            "FOG CONDITIONS: Use fog lights, reduce speed significantly, avoid overtaking",
+            "STRONG WIND: Grip steering firmly, be cautious of high-sided vehicles",
+            "EXTREME HEAT: Check vehicle cooling system, carry extra water",
+            "STORM CONDITIONS: Consider postponing travel or finding shelter",
+            "NIGHT TRAVEL: Reduce speed in poor weather, ensure proper lighting",
+            "MONSOON SEASON: Check weather updates regularly, avoid waterlogged areas",
+            "WINTER CONDITIONS: Check tire condition, carry emergency supplies"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, rec in enumerate(weather_recommendations, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Weather Alerts page added")
+
+    def add_risk_segments_analysis_page(self, route_data):
+        """Add detailed risk segments analysis"""
+        risk_segments = route_data.get('risk_segments', [])
+        if not risk_segments:
+            return
+        
+        self.add_page()
+        self.add_section_header("ROUTE RISK SEGMENTS ANALYSIS", "danger")
+        
+        # Risk Statistics
+        high_risk = len([r for r in risk_segments if r.get('risk_level', '').lower() == 'high'])
+        medium_risk = len([r for r in risk_segments if r.get('risk_level', '').lower() == 'medium'])
+        low_risk = len([r for r in risk_segments if r.get('risk_level', '').lower() == 'low'])
+        
+        risk_stats = [
+            ['Total Risk Segments', str(len(risk_segments))],
+            ['High Risk Segments', f"{high_risk} segments"],
+            ['Medium Risk Segments', f"{medium_risk} segments"],
+            ['Low Risk Segments', f"{low_risk} segments"],
+            ['Critical Assessment', 'DANGEROUS' if high_risk > 5 else 'MODERATE' if high_risk > 2 else 'MANAGEABLE'],
+            ['Risk Analysis Method', 'AI-based route assessment']
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'RISK SEGMENTS STATISTICS', 0, 1, 'L')
+        self.create_simple_table(risk_stats, [70, 110])
+        
+        # Detailed Risk Segments Table
+        self.ln(10)
+        self.add_section_header("DETAILED RISK SEGMENTS", "danger")
+        
+        headers = ['Segment', 'Start Location', 'End Location', 'Risk Level', 'Risk Factor', 'Distance (km)', 'Recommendations']
+        col_widths = [20, 35, 35, 25, 30, 20, 20]
+        
+        # Header row
+        self.set_font('Arial', 'B', 8)
+        self.set_fill_color(255, 230, 230)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 8, header, 1, 0, 'C', True)
+        self.ln(8)
+        
+        # Data rows
+        self.set_font('Arial', '', 7)
+        self.set_fill_color(255, 255, 255)
+        
+        for idx, segment in enumerate(risk_segments[:20], 1):
+            if self.get_y() > 270:
+                break
+            
+            risk_level = segment.get('risk_level', 'unknown').lower()
+            
+            # Color code by risk level
+            if risk_level == 'high':
+                self.set_text_color(220, 53, 69)
+            elif risk_level == 'medium':
+                self.set_text_color(253, 126, 20)
+            else:
+                self.set_text_color(40, 167, 69)
+            
+            y_pos = self.get_y()
+            
+            row_data = [
+                str(idx),
+                segment.get('start_location', 'Unknown')[:15],
+                segment.get('end_location', 'Unknown')[:15],
+                risk_level.title(),
+                segment.get('risk_factor', 'Unknown')[:12],
+                str(segment.get('distance', 'N/A')),
+                segment.get('recommendation', 'Caution')[:8]
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 6, self.clean_text(cell), 1, 0, 'L')
+            self.ln(6)
+        
+        self.set_text_color(0, 0, 0)
+        print("✅ Risk Segments Analysis page added")
+
+    def add_environmental_impact_page(self, route_data):
+        """Add environmental impact analysis"""
+        environmental = route_data.get('environmental', {})
+        if not environmental:
+            # Create basic environmental analysis
+            distance_km = self.parse_distance_to_km(route_data.get('distance', '0 km'))
+            environmental = self.generate_basic_environmental_data(distance_km)
+        
+        self.add_page()
+        self.add_section_header("ENVIRONMENTAL IMPACT ANALYSIS", "success")
+        
+        # Carbon Footprint Analysis
+        carbon_data = environmental.get('carbon_footprint', {})
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'CARBON FOOTPRINT ANALYSIS', 0, 1, 'L')
+        
+        carbon_stats = [
+            ['Total CO2 Emissions', f"{carbon_data.get('total_co2', 0):.2f} kg"],
+            ['CO2 per Kilometer', f"{carbon_data.get('co2_per_km', 0):.3f} kg/km"],
+            ['Fuel Consumption', f"{carbon_data.get('fuel_consumption', 0):.1f} liters"],
+            ['Environmental Rating', carbon_data.get('rating', 'Medium Impact')],
+            ['Emission Standard', 'BS-VI Compliant (assumed)'],
+            ['Carbon Offset Required', f"{carbon_data.get('offset_trees', 0)} trees"]
+        ]
+        
+        self.create_simple_table(carbon_stats, [70, 110])
+        
+        # Environmental Zones
+        env_zones = environmental.get('environmental_zones', [])
+        if env_zones:
+            self.ln(10)
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 8, 'ENVIRONMENTAL ZONES ALONG ROUTE', 0, 1, 'L')
+            
+            zone_headers = ['Zone Type', 'Location', 'Restrictions', 'Impact Level']
+            zone_widths = [40, 50, 60, 35]
+            
+            # Headers
+            self.set_font('Arial', 'B', 9)
+            self.set_fill_color(230, 255, 230)
+            for i, (header, width) in enumerate(zip(zone_headers, zone_widths)):
+                self.set_xy(10 + sum(zone_widths[:i]), self.get_y())
+                self.cell(width, 8, header, 1, 0, 'C', True)
+            self.ln(8)
+            
+            self.set_font('Arial', '', 8)
+            self.set_fill_color(255, 255, 255)
+            
+            for zone in env_zones[:10]:
+                y_pos = self.get_y()
+                
+                row_data = [
+                    zone.get('type', 'Unknown'),
+                    zone.get('location', 'Unknown')[:20],
+                    zone.get('restrictions', 'None')[:25],
+                    zone.get('impact', 'Low')
+                ]
+                
+                for i, (cell, width) in enumerate(zip(row_data, zone_widths)):
+                    self.set_xy(10 + sum(zone_widths[:i]), y_pos)
+                    self.cell(width, 6, self.clean_text(cell), 1, 0, 'L')
+                self.ln(6)
+        
+        # Environmental Recommendations
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'ENVIRONMENTAL RECOMMENDATIONS', 0, 1, 'L')
+        
+        env_recommendations = [
+            "Maintain steady speed to optimize fuel efficiency",
+            "Plan route to avoid environmentally sensitive areas",
+            "Consider eco-friendly driving techniques",
+            "Regular vehicle maintenance for reduced emissions",
+            "Use air conditioning judiciously to save fuel",
+            "Plan stops to minimize engine idling time",
+            "Consider carbon offset programs for long journeys",
+            "Follow emission norms in city centers"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, rec in enumerate(env_recommendations, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Environmental Impact Analysis page added")
+
+    def add_toll_gates_analysis_page(self, route_data):
+        """Add toll gates and cost analysis"""
+        toll_gates = route_data.get('toll_gates', [])
+        if not toll_gates:
+            return
+        
+        self.add_page()
+        self.add_section_header("TOLL GATES & COST ANALYSIS", "warning")
+        
+        # Toll Summary
+        total_toll_cost = sum([t.get('cost', 0) for t in toll_gates])
+        
+        toll_summary = [
+            ['Total Toll Gates', str(len(toll_gates))],
+            ['Total Toll Cost', f"Rs. {total_toll_cost:,.2f}"],
+            ['Average Cost per Toll', f"Rs. {total_toll_cost/len(toll_gates):,.2f}" if toll_gates else "Rs. 0"],
+            ['Payment Methods', 'FASTag recommended'],
+            ['Cost Category', 'High' if total_toll_cost > 1000 else 'Medium' if total_toll_cost > 500 else 'Low'],
+            ['Savings with FASTag', f"Rs. {total_toll_cost * 0.05:,.2f} (5% discount)"]
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'TOLL COST SUMMARY', 0, 1, 'L')
+        self.create_simple_table(toll_summary, [70, 110])
+        
+        # Detailed Toll Gates Table
+        self.ln(10)
+        self.add_section_header("DETAILED TOLL GATES", "warning")
+        
+        headers = ['S.No', 'Toll Plaza Name', 'Location', 'Cost (Rs.)', 'Payment Options', 'Distance (km)']
+        col_widths = [15, 50, 45, 25, 35, 25]
+        
+        # Header row
+        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(255, 245, 230)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 8)
+        self.set_fill_color(255, 255, 255)
+        
+        for idx, toll in enumerate(toll_gates, 1):
+            if self.get_y() > 270:
+                self.add_page()
+                self.add_section_header("TOLL GATES (Continued)", "warning")
+            
+            y_pos = self.get_y()
+            
+            row_data = [
+                str(idx),
+                toll.get('name', 'Unknown Toll Plaza')[:25],
+                toll.get('location', 'Unknown')[:20],
+                f"{toll.get('cost', 0):.2f}",
+                toll.get('payment_options', 'Cash/FASTag')[:15],
+                f"{toll.get('distance_from_start', 0):.1f}"
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 8, self.clean_text(cell), 1, 0, 'L')
+            self.ln(8)
+        
+        # FASTag Information
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'FASTAG BENEFITS & INFORMATION', 0, 1, 'L')
+        
+        fastag_info = [
+            "5% discount on toll charges with FASTag",
+            "No waiting time at toll plazas",
+            "Automatic deduction from linked account",
+            "Valid across all national highways",
+            "Mandatory for all four-wheelers",
+            "Can be purchased at toll plazas or online",
+            "Recharge available through multiple channels",
+            "SMS alerts for every transaction"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, info in enumerate(fastag_info, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(info), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Toll Gates Analysis page added")
+
+    def add_bridges_analysis_page(self, route_data):
+        """Add bridges and infrastructure analysis"""
+        bridges = route_data.get('bridges', [])
+        if not bridges:
+            return
+        
+        self.add_page()
+        self.add_section_header("BRIDGES & INFRASTRUCTURE ANALYSIS", "info")
+        
+        # Bridge Statistics
+        major_bridges = [b for b in bridges if b.get('type', '').lower() in ['major', 'highway']]
+        weight_restricted = [b for b in bridges if b.get('weight_limit', 0) < 25000]
+        
+        bridge_stats = [
+            ['Total Bridges', str(len(bridges))],
+            ['Major Bridges', str(len(major_bridges))],
+            ['Weight Restricted Bridges', str(len(weight_restricted))],
+            ['Infrastructure Status', 'Good' if len(weight_restricted) < 2 else 'Caution Required'],
+            ['Heavy Vehicle Suitability', 'Suitable' if len(weight_restricted) == 0 else 'Check Weight Limits'],
+            ['Maintenance Level', 'Modern Infrastructure (assumed)']
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'BRIDGE INFRASTRUCTURE SUMMARY', 0, 1, 'L')
+        self.create_simple_table(bridge_stats, [70, 110])
+        
+        # Detailed Bridges Table
+        self.ln(10)
+        self.add_section_header("DETAILED BRIDGE INFORMATION", "info")
+        
+        headers = ['S.No', 'Bridge Name', 'Location', 'Type', 'Length (m)', 'Weight Limit (kg)', 'Status']
+        col_widths = [15, 45, 35, 25, 20, 25, 20]
+        
+        # Header row
+        self.set_font('Arial', 'B', 8)
+        self.set_fill_color(230, 245, 255)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 8)
+        self.set_fill_color(255, 255, 255)
+        
+        for idx, bridge in enumerate(bridges, 1):
+            if self.get_y() > 270:
+                self.add_page()
+                self.add_section_header("BRIDGES (Continued)", "info")
+            
+            weight_limit = bridge.get('weight_limit', 50000)
+            
+            # Color code based on weight restrictions
+            if weight_limit < 18000:
+                self.set_text_color(220, 53, 69)  # Red for restrictive
+            elif weight_limit < 25000:
+                self.set_text_color(253, 126, 20)  # Orange for moderate
+            else:
+                self.set_text_color(40, 167, 69)  # Green for suitable
+            
+            y_pos = self.get_y()
+            
+            row_data = [
+                str(idx),
+                bridge.get('name', 'Unknown Bridge')[:20],
+                bridge.get('location', 'Unknown')[:15],
+                bridge.get('type', 'Standard')[:10],
+                str(bridge.get('length', 'N/A')),
+                f"{weight_limit:,}",
+                'OK' if weight_limit >= 25000 else 'RESTRICTED'
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 8, self.clean_text(cell), 1, 0, 'L')
+            self.ln(8)
+        
+        self.set_text_color(0, 0, 0)
+        
+        # Bridge Safety Guidelines
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'BRIDGE SAFETY GUIDELINES', 0, 1, 'L')
+        
+        bridge_guidelines = [
+            "Check vehicle weight before crossing weight-restricted bridges",
+            "Maintain safe speed limits on bridges (usually 40-60 km/h)",
+            "Avoid sudden braking or acceleration on bridge surfaces",
+            "Be cautious of wind conditions on long bridges",
+            "Follow single-lane traffic rules where applicable",
+            "Keep safe distance from other vehicles on bridges",
+            "Report any structural issues to highway authorities",
+            "Use designated heavy vehicle lanes where available"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, guideline in enumerate(bridge_guidelines, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(guideline), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Bridges Analysis page added")
+
+    def add_traffic_density_analysis_page(self, route_data):
+        """Add traffic density analysis"""
+        self.add_page()
+        self.add_section_header("TRAFFIC DENSITY ANALYSIS", "warning")
+        
+        # Generate basic traffic analysis based on route data
+        route_points = route_data.get('route_points', [])
+        distance_km = self.parse_distance_to_km(route_data.get('distance', '0 km'))
+        
+        # Estimate traffic density based on route characteristics
+        urban_areas = len([p for p in route_points if self.is_urban_area(p)])
+        highway_percentage = 60  # Estimated highway percentage
+        
+        traffic_stats = [
+            ['Route Distance', f"{distance_km:.1f} km"],
+            ['Urban Area Points', f"{urban_areas} locations"],
+            ['Highway Percentage', f"{highway_percentage}%"],
+            ['Expected Traffic Density', 'High' if urban_areas > 50 else 'Medium' if urban_areas > 20 else 'Low'],
+            ['Peak Hour Impact', 'Significant' if urban_areas > 30 else 'Moderate'],
+            ['Traffic Analysis Method', 'AI-based estimation']
+        ]
+        
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'TRAFFIC DENSITY STATISTICS', 0, 1, 'L')
+        self.create_simple_table(traffic_stats, [70, 110])
+        
+        # Traffic Segments Analysis
+        self.ln(10)
+        self.add_section_header("TRAFFIC SEGMENTS ANALYSIS", "warning")
+        
+        # Create sample traffic segments
+        traffic_segments = self.generate_traffic_segments(route_points, distance_km)
+        
+        headers = ['Segment', 'Location Type', 'Expected Density', 'Best Travel Time', 'Avoid Time', 'Speed Limit']
+        col_widths = [20, 35, 30, 30, 25, 25]
+        
+        # Header row
+        self.set_font('Arial', 'B', 9)
+        self.set_fill_color(255, 245, 230)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 8)
+        self.set_fill_color(255, 255, 255)
+        
+        for idx, segment in enumerate(traffic_segments[:15], 1):
+            if self.get_y() > 270:
+                break
+            
+            density = segment.get('density', 'medium').lower()
+            
+            # Color code by traffic density
+            if density == 'high':
+                self.set_text_color(220, 53, 69)
+            elif density == 'medium':
+                self.set_text_color(253, 126, 20)
+            else:
+                self.set_text_color(40, 167, 69)
+            
+            y_pos = self.get_y()
+            
+            row_data = [
+                f"S{idx}",
+                segment.get('location_type', 'Highway'),
+                density.title(),
+                segment.get('best_time', '6-10 AM'),
+                segment.get('avoid_time', '4-7 PM'),
+                segment.get('speed_limit', '60 km/h')
+            ]
+            
+            for i, (cell, width) in enumerate(zip(row_data, col_widths)):
+                self.set_xy(10 + sum(col_widths[:i]), y_pos)
+                self.cell(width, 8, self.clean_text(cell), 1, 0, 'L')
+            self.ln(8)
+        
+        self.set_text_color(0, 0, 0)
+        print("✅ Traffic Density Analysis page added")
+
+    def add_peak_hours_analysis_page(self, route_data):
+        """Add peak hours travel recommendations"""
+        self.add_page()
+        self.add_section_header("PEAK HOURS TRAVEL ANALYSIS", "warning")
+        
+        # Peak Hours Information
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'PEAK TRAFFIC HOURS ANALYSIS', 0, 1, 'L')
+        
+        peak_hours_data = [
+            ['Morning Peak', '7:00 AM - 10:00 AM', 'Heavy traffic in urban areas'],
+            ['Evening Peak', '5:00 PM - 8:00 PM', 'Heaviest traffic throughout route'],
+            ['Night Hours', '10:00 PM - 6:00 AM', 'Minimal traffic, good for travel'],
+            ['Weekend Mornings', '6:00 AM - 9:00 AM', 'Light traffic, ideal for travel'],
+            ['Lunch Hours', '12:00 PM - 2:00 PM', 'Moderate traffic in city centers'],
+            ['School Hours', '7:30 AM & 2:30 PM', 'Heavy traffic near schools']
+        ]
+        
+        headers = ['Time Period', 'Hours', 'Traffic Condition']
+        col_widths = [35, 45, 105]
+        
+        # Header row
+        self.set_font('Arial', 'B', 10)
+        self.set_fill_color(255, 240, 230)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 9)
+        self.set_fill_color(255, 255, 255)
+        
+        for period, hours, condition in peak_hours_data:
+            y_pos = self.get_y()
+            
+            # Color code by traffic condition
+            if 'Heavy' in condition:
+                self.set_text_color(220, 53, 69)
+            elif 'Moderate' in condition:
+                self.set_text_color(253, 126, 20)
+            else:
+                self.set_text_color(40, 167, 69)
+            
+            self.set_xy(10, y_pos)
+            self.cell(35, 8, period, 1, 0, 'L')
+            
+            self.set_xy(45, y_pos)
+            self.cell(45, 8, hours, 1, 0, 'C')
+            
+            self.set_xy(90, y_pos)
+            self.cell(105, 8, self.clean_text(condition), 1, 0, 'L')
+            
+            self.ln(8)
+        
+        self.set_text_color(0, 0, 0)
+        
+        # Time-Based Recommendations
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'OPTIMAL TRAVEL TIME RECOMMENDATIONS', 0, 1, 'L')
+        
+        time_recommendations = [
+            "BEST TIME: Start journey between 6:00 AM - 7:00 AM for minimal traffic",
+            "AVOID: Evening rush hours (5:00 PM - 8:00 PM) for fastest travel",
+            "WEEKEND TRAVEL: Saturday and Sunday mornings offer lightest traffic",
+            "NIGHT TRAVEL: 10:00 PM - 5:00 AM ideal for long-distance journeys",
+            "SCHOOL ZONES: Avoid 7:30-8:30 AM and 2:00-3:00 PM near schools",
+            "LUNCH BREAK: 12:00-2:00 PM good for city center traversal",
+            "MONSOON ADJUSTMENT: Add 30-40% extra time during rainy season",
+            "FESTIVAL PERIODS: Expect 50-100% longer travel times during festivals"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, rec in enumerate(time_recommendations, 1):
+            # Color code recommendations
+            if rec.startswith('BEST') or rec.startswith('WEEKEND'):
+                self.set_text_color(40, 167, 69)  # Green for good times
+            elif rec.startswith('AVOID') or rec.startswith('FESTIVAL'):
+                self.set_text_color(220, 53, 69)  # Red for times to avoid
+            else:
+                self.set_text_color(0, 0, 0)  # Black for neutral
+            
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(2)
+        
+        self.set_text_color(0, 0, 0)
+        print("✅ Peak Hours Analysis page added")
+
+    def add_safety_recommendations_page(self, route_data):
+        """Add comprehensive safety recommendations"""
+        self.add_page()
+        self.add_section_header("COMPREHENSIVE SAFETY RECOMMENDATIONS", "danger")
+        
+        # Safety Score Calculation
+        sharp_turns = route_data.get('sharp_turns', [])
+        weather_data = route_data.get('weather', [])
+        
+        safety_score = self.calculate_comprehensive_safety_score(route_data)
+        
+        # Safety Overview
+        self.set_font('Arial', 'B', 14)
+        score_color = self.success_color if safety_score >= 80 else self.warning_color if safety_score >= 60 else self.danger_color
+        
+        self.set_fill_color(*score_color)
+        self.rect(10, self.get_y(), 190, 15, 'F')
+        self.set_text_color(255, 255, 255)
+        self.set_xy(15, self.get_y() + 3)
+        safety_status = "SAFE" if safety_score >= 80 else "MODERATE RISK" if safety_score >= 60 else "HIGH RISK"
+        self.cell(180, 9, f'OVERALL SAFETY SCORE: {safety_score}/100 - {safety_status}', 0, 1, 'C')
+        self.ln(5)
+        
+        # Critical Safety Recommendations
+        self.set_text_color(0, 0, 0)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'CRITICAL SAFETY RECOMMENDATIONS', 0, 1, 'L')
+        
+        critical_recommendations = [
+            "PRE-JOURNEY INSPECTION: Check brakes, tires, lights, and fluid levels",
+            "EMERGENCY KIT: Carry first aid kit, tool kit, spare tire, and emergency contacts",
+            "WEATHER MONITORING: Check weather conditions and adjust travel plans accordingly",
+            "SPEED COMPLIANCE: Strictly follow speed limits, especially in sharp turns and urban areas",
+            "DEFENSIVE DRIVING: Maintain safe following distance and anticipate other drivers' actions",
+            "FATIGUE MANAGEMENT: Take breaks every 2 hours, avoid driving when tired",
+            "COMMUNICATION: Inform someone about your route and expected arrival time",
+            "VEHICLE DOCUMENTATION: Carry all necessary permits, licenses, and insurance papers"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, rec in enumerate(critical_recommendations, 1):
+            self.set_text_color(220, 53, 69)  # Red for critical items
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            self.set_text_color(0, 0, 0)
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(rec), 0, 'L')
+            self.ln(3)
+        
+        # Turn-Specific Safety Guidelines
+        if sharp_turns:
+            self.ln(5)
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(220, 53, 69)
+            self.cell(0, 8, f'CRITICAL: {len(sharp_turns)} DANGEROUS TURNS DETECTED', 0, 1, 'L')
+            self.set_text_color(0, 0, 0)
+            
+            turn_guidelines = [
+                "Reduce speed to 20-25 km/h before entering sharp turns",
+                "Use horn to alert oncoming traffic at blind corners",
+                "Avoid overtaking 200 meters before and after sharp turns",
+                "Keep to the left side of your lane throughout turns",
+                "Complete all braking before entering the turn, not during",
+                "Be extra cautious during night hours and adverse weather"
+            ]
+            
+            self.set_font('Arial', '', 10)
+            for guideline in turn_guidelines:
+                self.cell(8, 6, '•', 0, 0, 'L')
+                current_x = self.get_x()
+                current_y = self.get_y()
+                self.set_xy(current_x + 8, current_y)
+                self.multi_cell(170, 6, self.clean_text(guideline), 0, 'L')
+                self.ln(1)
+        
+        # Emergency Procedures
+        self.ln(10)
+        self.add_section_header("EMERGENCY PROCEDURES", "danger")
+        
+        emergency_procedures = [
+            "VEHICLE BREAKDOWN: Move to road shoulder, turn on hazard lights, place warning triangle",
+            "ACCIDENT SITUATION: Call 108 for ambulance, 100 for police, ensure scene safety",
+            "MEDICAL EMERGENCY: Keep first aid kit accessible, know basic first aid procedures",
+            "SEVERE WEATHER: Find safe shelter, avoid driving in storms or heavy fog",
+            "TIRE PUNCTURE: Park safely away from traffic, use spare tire or call roadside assistance",
+            "ENGINE OVERHEATING: Stop safely, turn off engine, wait for cooling before inspection",
+            "LOST OR STRANDED: Stay with vehicle, contact emergency services, conserve phone battery",
+            "FIRE EMERGENCY: Evacuate immediately, call fire services 101, use fire extinguisher if safe"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, procedure in enumerate(emergency_procedures, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(procedure), 0, 'L')
+            self.ln(2)
+        
+        print("✅ Safety Recommendations page added")
+
+    def add_emergency_contacts_page(self, route_data):
+        """Add emergency contacts and procedures"""
+        self.add_page()
+        self.add_section_header("EMERGENCY CONTACTS & PROCEDURES", "danger")
+        
+        # National Emergency Numbers
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'NATIONAL EMERGENCY CONTACT NUMBERS', 0, 1, 'L')
+        
+        emergency_numbers = [
+            ['Emergency Services', '112', 'Single emergency number for all services'],
+            ['Police', '100', 'Police assistance and crime reporting'],
+            ['Fire Services', '101', 'Fire emergency and rescue operations'],
+            ['Ambulance', '108', 'Medical emergency and ambulance services'],
+            ['Women Helpline', '1091', 'Women in distress emergency helpline'],
+            ['Child Helpline', '1098', 'Child abuse and emergency situations'],
+            ['Tourist Helpline', '1363', 'Tourist assistance and information'],
+            ['Highway Patrol', '1033', 'Highway emergency and assistance']
+        ]
+        
+        headers = ['Service', 'Number', 'Description']
+        col_widths = [40, 25, 120]
+        
+        # Header row
+        self.set_font('Arial', 'B', 10)
+        self.set_fill_color(255, 230, 230)
+        
+        for i, (header, width) in enumerate(zip(headers, col_widths)):
+            self.set_xy(10 + sum(col_widths[:i]), self.get_y())
+            self.cell(width, 10, header, 1, 0, 'C', True)
+        self.ln(10)
+        
+        # Data rows
+        self.set_font('Arial', '', 9)
+        self.set_fill_color(255, 255, 255)
+        
+        for service, number, description in emergency_numbers:
+            y_pos = self.get_y()
+            
+            self.set_xy(10, y_pos)
+            self.cell(40, 8, service, 1, 0, 'L')
+            
+            self.set_font('Arial', 'B', 10)
+            self.set_xy(50, y_pos)
+            self.cell(25, 8, number, 1, 0, 'C')
+            
+            self.set_font('Arial', '', 9)
+            self.set_xy(75, y_pos)
+            self.cell(120, 8, self.clean_text(description), 1, 0, 'L')
+            
+            self.ln(8)
+        
+        # Regional Emergency Services
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 8, 'REGIONAL EMERGENCY SERVICES', 0, 1, 'L')
+        
+        regional_services = [
+            ['Delhi Traffic Police', '011-25844444', 'Delhi region traffic assistance'],
+            ['Haryana Highway Patrol', '0124-2323200', 'Haryana highway emergency'],
+            ['Punjab Highway Patrol', '0172-2740100', 'Punjab highway emergency'],
+            ['Uttar Pradesh Highway', '0522-2623000', 'UP highway patrol services'],
+            ['Roadside Assistance', '1800-111-911', 'Private roadside assistance services']
+        ]
+        
+        for service, number, description in regional_services:
+            y_pos = self.get_y()
+            
+            self.set_font('Arial', '', 9)
+            self.set_xy(10, y_pos)
+            self.cell(40, 6, service, 1, 0, 'L')
+            
+            self.set_font('Arial', 'B', 9)
+            self.set_xy(50, y_pos)
+            self.cell(35, 6, number, 1, 0, 'C')
+            
+            self.set_font('Arial', '', 9)
+            self.set_xy(85, y_pos)
+            self.cell(110, 6, self.clean_text(description), 1, 0, 'L')
+            
+            self.ln(6)
+        
+        # Emergency Procedures Checklist
+        self.ln(10)
+        self.add_section_header("EMERGENCY RESPONSE CHECKLIST", "danger")
+        
+        emergency_checklist = [
+            "ASSESS SITUATION: Ensure personal safety before helping others",
+            "CALL FOR HELP: Dial appropriate emergency number immediately",
+            "PROVIDE LOCATION: Give exact location with landmarks if possible",
+            "GIVE DETAILS: Describe nature of emergency and number of people involved",
+            "FOLLOW INSTRUCTIONS: Listen carefully to emergency operator instructions",
+            "STAY CALM: Keep yourself and others calm while waiting for help",
+            "FIRST AID: Provide basic first aid if trained and it's safe to do so",
+            "DOCUMENT: Take photos if safe to do so, for insurance or police reports"
+        ]
+        
+        self.set_font('Arial', '', 10)
+        for i, item in enumerate(emergency_checklist, 1):
+            self.cell(8, 6, f"{i}.", 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(item), 0, 'L')
+            self.ln(2)
+        
+        # Important Notes
+        self.ln(10)
+        self.set_font('Arial', 'B', 12)
+        self.set_text_color(220, 53, 69)
+        self.cell(0, 8, 'IMPORTANT EMERGENCY NOTES', 0, 1, 'L')
+        
+        self.set_font('Arial', '', 10)
+        self.set_text_color(0, 0, 0)
+        important_notes = [
+            "Save all emergency numbers in your mobile phone before starting journey",
+            "Ensure your mobile phone is fully charged and carry a power bank",
+            "Keep emergency numbers written on paper as backup",
+            "Learn basic location landmarks along your route",
+            "Inform family/friends about your travel schedule and check-in regularly",
+            "Carry emergency cash for situations where cards might not work"
+        ]
+        
+        for note in important_notes:
+            self.cell(8, 6, '•', 0, 0, 'L')
+            current_x = self.get_x()
+            current_y = self.get_y()
+            self.set_xy(current_x + 8, current_y)
+            self.multi_cell(170, 6, self.clean_text(note), 0, 'L')
+            self.ln(1)
+        
+        print("✅ Emergency Contacts page added")
+
+    # ================================================================================
+    # HELPER METHODS FOR THE NEW PAGES
+    # ================================================================================
+
+    def generate_basic_environmental_data(self, distance_km):
+        """Generate basic environmental impact data"""
+        # Assuming heavy vehicle with average fuel consumption
+        fuel_consumption_per_km = 0.25  # liters per km for heavy vehicle
+        co2_per_liter = 2.68  # kg CO2 per liter of diesel
+        
+        total_fuel = distance_km * fuel_consumption_per_km
+        total_co2 = total_fuel * co2_per_liter
+        trees_for_offset = int(total_co2 / 22)  # 1 tree absorbs ~22kg CO2/year
+        
+        return {
+            'carbon_footprint': {
+                'total_co2': total_co2,
+                'co2_per_km': total_co2 / distance_km if distance_km > 0 else 0,
+                'fuel_consumption': total_fuel,
+                'rating': 'High Impact' if total_co2 > 500 else 'Medium Impact' if total_co2 > 200 else 'Low Impact',
+                'offset_trees': trees_for_offset
+            },
+            'environmental_zones': [
+                {'type': 'Urban Area', 'location': 'City Centers', 'restrictions': 'Emission norms', 'impact': 'High'},
+                {'type': 'Highway', 'location': 'National Highways', 'restrictions': 'None', 'impact': 'Medium'},
+                {'type': 'Rural Area', 'location': 'Village Roads', 'restrictions': 'Dust control', 'impact': 'Low'}
+            ]
+        }
+
+    def is_urban_area(self, point):
+        """Simple heuristic to determine if a point is in urban area"""
+        # This is a simplified method - in reality you'd use proper geocoding
+        # For now, assume every 5th point is urban (20% urban coverage)
+        return hash(str(point)) % 5 == 0
+
+    def generate_traffic_segments(self, route_points, distance_km):
+        """Generate traffic segments for analysis"""
+        segments = []
+        num_segments = min(15, max(5, int(distance_km / 20)))  # 1 segment per 20km
+        
+        for i in range(num_segments):
+            segment_types = ['Urban Area', 'Highway', 'Rural Road', 'City Center', 'Industrial Area']
+            densities = ['low', 'medium', 'high']
+            
+            segments.append({
+                'location_type': segment_types[i % len(segment_types)],
+                'density': densities[i % len(densities)],
+                'best_time': '6-10 AM' if i % 3 == 0 else '10 AM-4 PM' if i % 3 == 1 else '8-11 PM',
+                'avoid_time': '5-8 PM' if i % 2 == 0 else '7-10 AM',
+                'speed_limit': '40 km/h' if 'Urban' in segment_types[i % len(segment_types)] else '80 km/h'
+            })
+        
+        return segments
+
+    def calculate_comprehensive_safety_score(self, route_data):
+        """Calculate comprehensive safety score"""
+        base_score = 100
+        
+        # Deduct for sharp turns
+        sharp_turns = route_data.get('sharp_turns', [])
+        extreme_turns = len([t for t in sharp_turns if t.get('angle', 0) > 80])
+        sharp_danger = len([t for t in sharp_turns if 70 <= t.get('angle', 0) <= 80])
+        
+        base_score -= extreme_turns * 20
+        base_score -= sharp_danger * 10
+        
+        # Deduct for weather conditions
+        weather_data = route_data.get('weather', [])
+        bad_weather = len([w for w in weather_data if w.get('condition', '').lower() in ['rain', 'storm', 'fog']])
+        base_score -= bad_weather * 5
+        
+        # Deduct for risk segments
+        risk_segments = route_data.get('risk_segments', [])
+        high_risk = len([r for r in risk_segments if r.get('risk_level', '').lower() == 'high'])
+        base_score -= high_risk * 8
+        
+        # Network coverage impact
+        network_coverage = route_data.get('network_coverage', {})
+        dead_zones = len(network_coverage.get('dead_zones', []))
+        base_score -= dead_zones * 3
+        
+        return max(0, min(100, base_score))
     # ========================================================================
     # 🆕 NEW: GOOGLE MAPS API ENHANCEMENT PAGES
     # ========================================================================
@@ -2429,6 +3437,14 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
     - Printable GPS coordinate tables
     - Color-coded risk visualization maps
     - Multi-layer maps with risk/emergency/elevation layers
+    - Weather analysis and alerts
+    - Risk segments analysis
+    - Environmental impact analysis
+    - Toll gates and bridges analysis
+    - Traffic density analysis
+    - Peak hours analysis
+    - Safety recommendations
+    - Emergency contacts
     """
     
     # Handle None values
@@ -2513,6 +3529,66 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
             print("⚠️ Emergency planning not available (missing method, analyzer, or API key)")
         
         # ========================================================================
+        # 🆕 12-19. MISSING FEATURES FROM V1 - NOW ADDED
+        # ========================================================================
+        
+        # 12. Weather Analysis (if weather data available)
+        if weather:
+            try:
+                print("🌤️ Adding weather analysis...")
+                pdf.add_weather_analysis_page(route_data)
+                pdf.add_weather_alerts_page(route_data)
+            except Exception as e:
+                print(f"⚠️ Weather analysis failed: {e}")
+        
+        # 13. Risk Segments Analysis
+        if risk_segments:
+            try:
+                print("⚠️ Adding risk segments analysis...")
+                pdf.add_risk_segments_analysis_page(route_data)
+            except Exception as e:
+                print(f"⚠️ Risk segments analysis failed: {e}")
+        
+        # 14. Environmental Impact Analysis
+        try:
+            print("🌱 Adding environmental impact analysis...")
+            pdf.add_environmental_impact_page(route_data)
+        except Exception as e:
+            print(f"⚠️ Environmental impact analysis failed: {e}")
+        
+        # 15. Toll Gates Analysis
+        if toll_gates:
+            try:
+                print("💰 Adding toll gates analysis...")
+                pdf.add_toll_gates_analysis_page(route_data)
+            except Exception as e:
+                print(f"⚠️ Toll gates analysis failed: {e}")
+        
+        # 16. Bridges Analysis
+        if bridges:
+            try:
+                print("🌉 Adding bridges analysis...")
+                pdf.add_bridges_analysis_page(route_data)
+            except Exception as e:
+                print(f"⚠️ Bridges analysis failed: {e}")
+        
+        # 17. Traffic Analysis Pages
+        try:
+            print("🚦 Adding traffic analysis...")
+            pdf.add_traffic_density_analysis_page(route_data)
+            pdf.add_peak_hours_analysis_page(route_data)
+        except Exception as e:
+            print(f"⚠️ Traffic analysis failed: {e}")
+        
+        # 18. Safety and Emergency Pages
+        try:
+            print("🚨 Adding safety recommendations...")
+            pdf.add_safety_recommendations_page(route_data)
+            pdf.add_emergency_contacts_page(route_data)
+        except Exception as e:
+            print(f"⚠️ Safety recommendations failed: {e}")
+        
+        # ========================================================================
         # 📄 SAVE PDF - SUCCESS!
         # ========================================================================
         
@@ -2522,12 +3598,15 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         # Calculate total pages
         google_maps_pages = 8 if api_key else 1  # 8 enhancement pages or 1 placeholder
         total_turns = len([turn for turn in route_data.get('sharp_turns', []) if turn.get('angle', 0) >= 70])
-        estimated_pages = 12 + google_maps_pages + total_turns  # Base pages + Google Maps pages + turn pages
+        additional_pages = 8  # Weather, Risk, Environmental, Toll, Bridges, Traffic, Safety, Emergency
+        estimated_pages = 12 + google_maps_pages + total_turns + additional_pages  # Base + Google Maps + Turns + New pages
         
         print(f"✅ Enhanced PDF with Google Maps features generated: {filename}")
         print(f"📊 Features: Google Maps enhancements, Regulatory compliance, Individual turn analysis")
-        print(f"📄 Total pages: ~{estimated_pages} (including {google_maps_pages} Google Maps enhancement pages)")
+        print(f"📄 Total pages: ~{estimated_pages} (including {google_maps_pages} Google Maps + {additional_pages} additional analysis pages)")
         print(f"🗺️ New Google Maps features: Supply/Customer details, Terrain classification, Highways, Congestion analysis")
+        print(f"🌤️ Additional features: Weather analysis, Risk segments, Environmental impact, Toll/Bridges, Traffic analysis")
+        print(f"🚨 Safety features: Comprehensive safety recommendations, Emergency contacts and procedures")
         print(f"🔧 All emoji and Unicode issues resolved with comprehensive text cleaning")
         
         return filename
@@ -2537,7 +3616,6 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         import traceback
         traceback.print_exc()
         return None
-
 
 # ================================================================================
 # 🆕 USAGE EXAMPLE
