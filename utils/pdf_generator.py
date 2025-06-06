@@ -16,6 +16,7 @@ import json
 import matplotlib.patches as mpatches
 from matplotlib.patches import Rectangle
 from geopy.distance import geodesic
+from typing import Dict, List, Any, Optional  # ← ADD THIS LINE
 
 # Add these imports
 try:
@@ -35,6 +36,11 @@ except ImportError as e:
     WeatherIntelligence = None
     ElevationAnalyzer = None
     EmergencyPlanner = None
+    GoogleMapsEnhancements = None
+    RealTimeIntelligence = None
+    FleetIntelligence = None
+    EmergencyResponse = None
+    LocationIntelligence = None
 
 class EnhancedRoutePDF(FPDF):
     def __init__(self, title=None):
@@ -65,7 +71,7 @@ class EnhancedRoutePDF(FPDF):
         }
         print(f"✅ Configured {len([k for k in self.api_keys.values() if k])} API keys")    
     def clean_text(self, text):
-        """Enhanced text cleaning for PDF compatibility - ROBUST VERSION"""
+        """Enhanced text cleaning for PDF compatibility - FIXED VERSION"""
         if not isinstance(text, str):
             text = str(text)
         
@@ -83,7 +89,7 @@ class EnhancedRoutePDF(FPDF):
         import re
         text = re.sub(r'\s+', ' ', text).strip()
         
-        # Comprehensive Unicode to ASCII replacements
+        # Comprehensive Unicode to ASCII replacements - FIXED VERSION
         replacements = {
             # Critical: Remove common web interface artifacts
             '�': '',  # Replace with empty string
@@ -93,9 +99,9 @@ class EnhancedRoutePDF(FPDF):
             '\u200d': '',  # Zero-width joiner
             '\u2060': '',  # Word joiner
             
-            # Emojis to text
-            '📄': '[DOCUMENT]', '🗺️': '[MAP]', '📡': '[SIGNAL]', '': '[WARNING]',
-            '🔴': '[CRITICAL]', '⏰': '[TIME]', '📋': '[CHECKLIST]', '': '[OK]',
+            # Emojis to text (FIXED - removed ✅ that was causing issues)
+            '📄': '[DOCUMENT]', '🗺️': '[MAP]', '📡': '[SIGNAL]', '⚠️': '[WARNING]',
+            '🔴': '[CRITICAL]', '⏰': '[TIME]', '📋': '[CHECKLIST]',
             '❌': '[ERROR]', '🚗': '[CAR]', '🏥': '[HOSPITAL]', '⛽': '[FUEL]',
             '🏫': '[SCHOOL]', '🚔': '[POLICE]', '🌡️': '[TEMP]', '🌧️': '[RAIN]',
             '☀️': '[SUN]', '📊': '[CHART]', '🔋': '[BATTERY]', '📱': '[PHONE]',
@@ -308,10 +314,11 @@ class EnhancedRoutePDF(FPDF):
             if 'error' not in summer_analysis:
                 self.add_page()
                 self.add_section_header("SUMMER WEATHER RISKS ANALYSIS", "warning")
-                
+                self.set_text_color(0, 0, 0)
                 # Temperature hotspots
                 hotspots = summer_analysis.get('temperature_hotspots', [])
                 if hotspots:
+                    self.set_text_color(0, 0, 0)
                     self.set_font('Arial', 'B', 12)
                     self.cell(0, 8, f'EXTREME HEAT ZONES: {len(hotspots)} IDENTIFIED', 0, 1, 'L')
                     
@@ -4087,7 +4094,7 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
                 hospital_list, schools=None, food_stops=None, police_stations=None, 
                 elevation=None, weather=None, risk_segments=None, compliance=None,
                 emergency=None, environmental=None, toll_gates=None, bridges=None, 
-                vehicle_type="car", type="enhanced", api_key=None, api_keys=None, 
+                major_highways=None,vehicle_type="car", type="enhanced", api_key=None, api_keys=None, 
                 vehicle_info=None, route_data=None):
     """
     🆕 ERROR-SAFE ENHANCED PDF GENERATION WITH GOOGLE MAPS API INTEGRATION
@@ -4124,6 +4131,8 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
     if not turns: turns = []
     if not route_data: route_data = {}
     if not vehicle_info: vehicle_info = {'type': vehicle_type, 'weight': 18000}
+    if not major_highways: major_highways = []  # ← ADD THIS LINE
+
     if not api_keys: api_keys = {'google_maps_api_key': api_key} if api_key else {}
     
     try:
@@ -4134,6 +4143,21 @@ def generate_pdf(filename, from_addr, to_addr, distance, duration, turns, petrol
         pdf.configure_api_keys(api_keys)
         
         print("📄 Starting Enhanced PDF Generation with API Intelligence...")
+         # Build route_data if incomplete
+        if not route_data.get('sharp_turns'):
+            route_data['sharp_turns'] = turns
+        if not route_data.get('hospitals'):
+            route_data['hospitals'] = hospital_list
+        if not route_data.get('petrol_bunks'):
+            route_data['petrol_bunks'] = petrol_bunks
+        if not route_data.get('schools'):
+            route_data['schools'] = schools
+        if not route_data.get('food_stops'):
+            route_data['food_stops'] = food_stops
+        if not route_data.get('police_stations'):
+            route_data['police_stations'] = police_stations
+        if not route_data.get('major_highways'):
+            route_data['major_highways'] = major_highways  # ← ADD THIS LINE
         
         # 1. Professional title page
         pdf.add_professional_title_page()

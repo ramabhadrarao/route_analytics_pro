@@ -126,7 +126,19 @@ class LocationIntelligence:
             logger.error(f"Business opportunities analysis error: {e}")
             business_analysis['error'] = str(e)
             return business_analysis
-    
+    def _calculate_density_variation(self, densities: List[int]) -> str:
+        """Calculate density variation safely"""
+        if not densities or min(densities) <= 0:
+            return 'low'
+        
+        ratio = max(densities) / min(densities)
+        
+        if ratio > 10:
+            return 'high'
+        elif ratio > 3:
+            return 'moderate'
+        else:
+            return 'low'
     def analyze_cultural_significance(self, route_data: Dict) -> Dict:
         """Analyze cultural and historical significance of locations along route"""
         
@@ -679,7 +691,8 @@ class LocationIntelligence:
             'average_density': sum(densities) / len(densities) if densities else 0,
             'max_density': max(densities) if densities else 0,
             'min_density': min(densities) if densities else 0,
-            'density_variation': 'high' if max(densities) / min(densities) > 10 if min(densities) > 0 else 'low',
+            #'density_variation': 'high' if max(densities) / min(densities) > 10 if min(densities) > 0 else 'low',
+            'density_variation': self._calculate_density_variation(densities),
             'predominant_density_type': self._get_predominant_density_type(demographic_data),
             'urban_rural_ratio': self._calculate_urban_rural_ratio(demographic_data)
         }

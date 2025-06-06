@@ -69,7 +69,16 @@ ADMIN_PASSWORD = 'admin123'
 # API Keys
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyAXa6qLmUm7YEoUOqpIZF8A00663AKgq68')
 OPENWEATHER_API_KEY = os.environ.get('OPENWEATHER_API_KEY', '904f1f92432e925f1536c88b0a6c613f')
-
+API_KEYS_CONFIG = {
+    'google_maps_api_key': os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyAXa6qLmUm7YEoUOqpIZF8A00663AKgq68'),
+    'openweather_api_key': os.environ.get('OPENWEATHER_API_KEY', '904f1f92432e925f1536c88b0a6c613f'),
+    'tomtom_api_key': os.environ.get('TOMTOM_API_KEY', ''),
+    'here_api_key': os.environ.get('HERE_API_KEY', ''),
+    'visualcrossing_api_key': os.environ.get('VISUALCROSSING_API_KEY', ''),
+    'tomorrow_io_api_key': os.environ.get('TOMORROW_IO_API_KEY', ''),
+    'mapbox_api_key': os.environ.get('MAPBOX_API_KEY', ''),
+    'emergency_api_key': os.environ.get('EMERGENCY_API_KEY', ''),
+}
 class SessionDataManager:
     """Manage large session data using file storage"""
     
@@ -835,6 +844,14 @@ def generate_pdf_report():
         
         # Create reports directory
         os.makedirs('reports', exist_ok=True)
+         # Enhanced vehicle info
+        vehicle_info = {
+            'type': vehicle_type,
+            'weight': 18000 if vehicle_type == 'heavy_goods_vehicle' else 8000 if vehicle_type == 'medium_goods_vehicle' else 2500,
+            'passenger_capacity': 2 if 'goods' in vehicle_type else 45 if vehicle_type == 'bus' else 5,
+            'fuel_type': 'Diesel' if 'goods' in vehicle_type or vehicle_type == 'bus' else 'Petrol'
+        }
+        
         
         # Generate enhanced PDF with regulatory compliance
         logger.info(f"Generating enhanced PDF report with regulatory compliance: {pdf_filename}")
@@ -857,7 +874,9 @@ def generate_pdf_report():
             major_highways=route_data.get('major_highways', []),
             vehicle_type=vehicle_type,  # PASS VEHICLE TYPE
             type='enhanced_comprehensive',
-            api_key=GOOGLE_MAPS_API_KEY,
+            api_key=API_KEYS_CONFIG['google_maps_api_key'],  # Legacy support
+            api_keys=API_KEYS_CONFIG,  # 🆕 NEW: Pass all API keys
+            vehicle_info=vehicle_info, 
             route_data=route_data
         )
         
